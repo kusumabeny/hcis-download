@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(npm uninstall *)",
+      "Bash(npm install *)",
+      "Bash(pkill -f \"server.api.js\")",
+      "Bash(curl -s -F \"file=@public/downloads/hcis-android.apk\" http://localhost:3001/api/upload/android)",
+      "Bash(curl --version)",
+      "PowerShell(Stop-Process -Id 13772 -Force)",
+      "PowerShell(Stop-Process -Id \\(netstat -ano | Select-String \":3001 \" | ForEach-Object { \\($_ -split \"\\\\s+\"\\)[-1] } | Select-Object -First 1\\) -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1; Write-Host \"Old server stopped\")",
+      "PowerShell(Get-Process node -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Force)",
+      "Bash(git init *)",
+      "Bash(git branch *)",
+      "Bash(git config *)",
+      "Bash(git add *)"
+    ]
+  }
+}
