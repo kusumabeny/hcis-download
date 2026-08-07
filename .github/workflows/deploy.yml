@@ -1,0 +1,57 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login ke GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+          build-args: |
+            VITE_ADMIN_PASSWORD=${{ secrets.VITE_ADMIN_PASSWORD }}
+
+      - name: Deploy ke server via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Login ke GHCR dari server
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Pull image terbaru & restart
+            cd /opt/hcis-download
+            docker compose pull
+            docker compose up -d --remove-orphans
+
+            # Bersihkan image lama
+            docker image prune -f
+
+            echo "Deploy selesai: $(date)"
