@@ -3,6 +3,11 @@ name: CI/CD - Build & Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: hcis-download-production
+  cancel-in-progress: true
 
 env:
   IMAGE: ghcr.io/${{ github.repository }}
@@ -55,8 +60,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
           build-args: |
             VITE_ADMIN_PASSWORD=${{ secrets.VITE_ADMIN_PASSWORD }}
 
@@ -72,11 +77,12 @@ jobs:
 
             # Pull image terbaru & restart
             cd /opt/hcis-download
+            test -f docker-compose.yml
             docker compose pull
             docker compose up -d --no-build --remove-orphans
 
             # Tunggu hingga container sehat
-            for i in 1 2 3 4 5 6; do
+            for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
               STATUS=$(docker inspect --format='{{.State.Health.Status}}' hcis-download 2>/dev/null || true)
               if [ "$STATUS" = "healthy" ]; then
                 docker image prune -f
@@ -86,4 +92,5 @@ jobs:
               sleep 5
             done
             docker compose ps
+            docker compose logs --tail=80 hcis-download
             exit 1
