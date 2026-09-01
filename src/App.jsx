@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DownloadPage from './pages/DownloadPage'
 import AdminPage from './pages/AdminPage'
 import AdminLogin from './pages/AdminLogin'
 import defaultData from './data/releases.json'
 
-function loadReleases() {
+function loadLocalReleases() {
   try {
     const saved = localStorage.getItem('hcis_releases')
     if (saved) return JSON.parse(saved)
@@ -18,14 +18,30 @@ function isAuthenticated() {
 
 export default function App() {
   const [page, setPage] = useState('download')
-  const [releases, setReleases] = useState(loadReleases)
+  const [releases, setReleases] = useState(loadLocalReleases)
+  const [loaded, setLoaded] = useState(false)
   const [authed, setAuthed] = useState(isAuthenticated)
 
-  const handleSave = (data) => {
-    try {
-      localStorage.setItem('hcis_releases', JSON.stringify(data))
-    } catch {}
-    setReleases(data)
+  useEffect(() => {
+    fetch('/api/releases')
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((data) => {
+        setReleases(data)
+        setLoaded(true)
+      })
+      .catch(() => setLoaded(true))
+  }, [])
+
+  const handleSave = async (data) => {
+    const response = await fetch('/api/releases', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) throw new Error('Gagal menyimpan ke server')
+    const saved = await response.json()
+    try { localStorage.setItem('hcis_releases', JSON.stringify(saved)) } catch {}
+    setReleases(saved)
   }
 
   const handleLogout = () => {
@@ -35,6 +51,8 @@ export default function App() {
   }
 
   const goAdmin = () => setPage('admin')
+
+  if (!loaded) return null
 
   if (page === 'admin') {
     if (!authed) {

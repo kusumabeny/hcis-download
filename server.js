@@ -22,7 +22,35 @@ const distDir = path.join(__dirname, 'dist')
 const downloadsDir = path.join(distDir, 'downloads')
 if (!fs.existsSync(downloadsDir)) fs.mkdirSync(downloadsDir, { recursive: true })
 
+const dataDir = path.join(__dirname, 'data')
+const releasesFile = path.join(dataDir, 'releases.json')
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
+if (!fs.existsSync(releasesFile)) {
+  const bundledReleases = path.join(__dirname, 'dist', 'releases.json')
+  if (fs.existsSync(bundledReleases)) fs.copyFileSync(bundledReleases, releasesFile)
+}
+
 app.use(express.static(distDir))
+
+app.get('/api/releases', (req, res) => {
+  try {
+    res.json(JSON.parse(fs.readFileSync(releasesFile, 'utf8')))
+  } catch (e) {
+    res.status(500).json({ error: 'Gagal membaca data release' })
+  }
+})
+
+app.put('/api/releases', (req, res) => {
+  try {
+    if (!req.body?.android || !req.body?.ios) {
+      return res.status(400).json({ error: 'Data release tidak lengkap' })
+    }
+    fs.writeFileSync(releasesFile, JSON.stringify(req.body, null, 2) + '\n')
+    res.json(req.body)
+  } catch (e) {
+    res.status(500).json({ error: 'Gagal menyimpan data release' })
+  }
+})
 
 // Android API level → human-readable version
 const SDK_MAP = {

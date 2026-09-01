@@ -380,7 +380,7 @@ export default function AdminPage({ releases, onSave, onBack, onLogout }) {
     setTimeout(() => setToast(null), 4000)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Auto-push versi lama ke history jika versi berubah
     const updated = { ...form }
     for (const platform of ['android', 'ios']) {
@@ -399,10 +399,14 @@ export default function AdminPage({ releases, onSave, onBack, onLogout }) {
         }
       }
     }
-    onSave(updated)
-    setForm(defaultForm(updated))
-    setDirty(false)
-    showToast('success', 'Data berhasil disimpan!')
+    try {
+      await onSave(updated)
+      setForm(defaultForm(updated))
+      setDirty(false)
+      showToast('success', 'Data berhasil disimpan ke server!')
+    } catch (error) {
+      showToast('error', error.message || 'Gagal menyimpan data ke server')
+    }
   }
 
   const handleReset = () => {

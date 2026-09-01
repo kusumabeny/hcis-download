@@ -26,6 +26,7 @@ RUN npm ci --omit=dev
 # Copy built React app and server
 COPY --from=builder /app/dist ./dist
 COPY server.js ./
+COPY src/data/releases.json ./dist/releases.json
 
 # Create uploads directory
 RUN mkdir -p dist/downloads

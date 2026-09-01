@@ -12,6 +12,8 @@ services:
     volumes:
       # Persist uploaded APK/IPA files across container restarts
       - hcis_downloads:/app/dist/downloads
+      # Persist release configuration across image updates
+      - hcis_releases:/app/data
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -24,4 +26,6 @@ services:
 
 volumes:
   hcis_downloads:
+    driver: local
+  hcis_releases:
     driver: local
