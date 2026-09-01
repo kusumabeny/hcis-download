@@ -1,4 +1,4 @@
-name: Build & Deploy
+name: CI/CD - Build & Deploy
 
 on:
   push:
@@ -6,9 +6,33 @@ on:
 
 env:
   IMAGE: ghcr.io/${{ github.repository }}
+  SERVER_HOST: 202.50.203.139
 
 jobs:
+  ci:
+    name: Validate application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build frontend
+        run: npm run build
+
   build-and-deploy:
+    needs: ci
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -39,7 +63,7 @@ jobs:
       - name: Deploy ke server via SSH
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host: ${{ env.SERVER_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
@@ -49,9 +73,17 @@ jobs:
             # Pull image terbaru & restart
             cd /opt/hcis-download
             docker compose pull
-            docker compose up -d --remove-orphans
+            docker compose up -d --no-build --remove-orphans
 
-            # Bersihkan image lama
-            docker image prune -f
-
-            echo "Deploy selesai: $(date)"
+            # Tunggu hingga container sehat
+            for i in 1 2 3 4 5 6; do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' hcis-download 2>/dev/null || true)
+              if [ "$STATUS" = "healthy" ]; then
+                docker image prune -f
+                echo "Deploy selesai: $(date)"
+                exit 0
+              fi
+              sleep 5
+            done
+            docker compose ps
+            exit 1

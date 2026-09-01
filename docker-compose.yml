@@ -4,7 +4,7 @@ services:
       context: .
       args:
         VITE_ADMIN_PASSWORD: ${VITE_ADMIN_PASSWORD:-admin123}
-    image: hcis-download:latest
+    image: ${IMAGE:-ghcr.io/kusumabeny/hcis-download}:latest
     container_name: hcis-download
     restart: unless-stopped
     ports:

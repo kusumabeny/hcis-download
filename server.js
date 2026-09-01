@@ -144,7 +144,7 @@ app.delete('/api/upload/:platform', (req, res) => {
 })
 
 // Fallback → React app
-app.get('*', (req, res) => {
+app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(distDir, 'index.html'))
 })
 

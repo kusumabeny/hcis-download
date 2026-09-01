@@ -82,15 +82,24 @@ Buka http://localhost:3000
 git clone https://github.com/kusumabeny/hcis-download
 cd hcis-download
 
-# Build & jalankan dengan password default (admin123)
-docker compose up -d
+# Build & jalankan dengan password admin dari environment
+VITE_ADMIN_PASSWORD=passwordkamu docker compose up -d --build
 
 # Build dengan custom password
-docker compose build --build-arg VITE_ADMIN_PASSWORD=passwordkamu
-docker compose up -d
+VITE_ADMIN_PASSWORD=passwordkamu docker compose up -d --build
 ```
 
 Buka http://localhost:3000
+
+Untuk server production `202.50.203.139`, jalankan:
+
+```bash
+git clone https://github.com/kusumabeny/hcis-download /opt/hcis-download
+cd /opt/hcis-download
+VITE_ADMIN_PASSWORD='passwordkuat' docker compose up -d --build
+```
+
+Pastikan firewall mengizinkan TCP port `3000`. Pada deployment CI/CD, server mengambil image dari GHCR sehingga tidak perlu source code terbaru untuk proses build.
 
 ### Ganti password admin
 
