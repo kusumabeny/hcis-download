@@ -1,0 +1,96 @@
+name: CI/CD - Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: hcis-download-production
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+  SERVER_HOST: 202.50.203.139
+
+jobs:
+  ci:
+    name: Validate application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build frontend
+        run: npm run build
+
+  build-and-deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login ke GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          build-args: |
+            VITE_ADMIN_PASSWORD=${{ secrets.VITE_ADMIN_PASSWORD }}
+
+      - name: Deploy ke server via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ env.SERVER_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Login ke GHCR dari server
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Pull image terbaru & restart
+            cd /opt/hcis-download
+            test -f docker-compose.yml
+            docker compose pull
+            docker compose up -d --no-build --remove-orphans
+
+            # Tunggu hingga container sehat
+            for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' hcis-download 2>/dev/null || true)
+              if [ "$STATUS" = "healthy" ]; then
+                docker image prune -f
+                echo "Deploy selesai: $(date)"
+                exit 0
+              fi
+              sleep 5
+            done
+            docker compose ps
+            docker compose logs --tail=80 hcis-download
+            exit 1

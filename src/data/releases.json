@@ -1,0 +1,24 @@
+{
+  "android": {
+    "enabled": true,
+    "version": "1.4.4",
+    "releaseDate": "2026-08-06",
+    "changelog": "Rilis perdana HCIS Mobile untuk Android",
+    "downloadUrl": "/downloads/hcis-android.apk",
+    "fileSize": "11.6 MB",
+    "minOsVersion": "Android 7.0+",
+    "history": []
+  },
+  "ios": {
+    "enabled": true,
+    "version": "1.0.0",
+    "releaseDate": "2026-08-06",
+    "changelog": "Rilis perdana HCIS Mobile untuk iOS",
+    "downloadUrl": "#",
+    "fileSize": "52 MB",
+    "minOsVersion": "iOS 14.0+",
+    "history": []
+  },
+  "appName": "HCIS Mobile",
+  "appTagline": "Human Capital Information System"
+}

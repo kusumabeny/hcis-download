@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.gitignore
+*.local
+.env.local
+.env.*.local
+public/downloads/*.apk
+public/downloads/*.ipa
+public/downloads/*.aab
+README.md
+server.api.js
