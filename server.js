@@ -40,6 +40,37 @@ app.get('/api/releases', (req, res) => {
   }
 })
 
+const CHANGELOG_URL = 'https://raw.githubusercontent.com/kusumabeny/HCIS-mobile/main/presensi-mobile/CHANGELOG.md'
+
+function parseChangelogEntry(markdown, version) {
+  const lines = markdown.split(/\r?\n/)
+  const headingIndex = lines.findIndex((line) => line.match(/^##\s+v?([^\s-–—|]+)/i)?.[1] === version)
+  if (headingIndex < 0) return null
+  const nextHeading = lines.slice(headingIndex + 1).findIndex((line) => /^##\s+/.test(line))
+  const entryLines = lines.slice(headingIndex + 1, nextHeading < 0 ? undefined : headingIndex + 1 + nextHeading)
+  const changelogLines = entryLines
+    .map((line) => line.trim())
+    .filter((line) => /^[-*+]\\s+/.test(line))
+    .map((line) => line.replace(/^[-*+]\\s+/, '').trim())
+
+  return changelogLines.join('\n') || null
+}
+
+app.get('/api/changelog', async (req, res) => {
+  const version = String(req.query.version || '').trim()
+  if (!version) return res.status(400).json({ error: 'Versi wajib diisi' })
+
+  try {
+    const response = await fetch(CHANGELOG_URL)
+    if (!response.ok) throw new Error(`GitHub mengembalikan ${response.status}`)
+    const changelog = parseChangelogEntry(await response.text(), version)
+    if (!changelog) return res.status(404).json({ error: `Changelog versi ${version} tidak ditemukan` })
+    res.json({ version, changelog, source: CHANGELOG_URL })
+  } catch (error) {
+    res.status(502).json({ error: 'Changelog realtime tidak dapat diambil saat ini' })
+  }
+})
+
 app.put('/api/releases', (req, res) => {
   try {
     if (!req.body?.android || !req.body?.ios) {

@@ -42,6 +42,51 @@ function Field({ label, id, type = 'text', value, onChange, placeholder, hint, d
   )
 }
 
+function ChangelogField({ platform, data, update, disabled, showToast }) {
+  const [loading, setLoading] = useState(false)
+
+  const fetchChangelog = async () => {
+    if (!data.version) return showToast('error', 'Isi versi terlebih dahulu.')
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/changelog?version=${encodeURIComponent(data.version)}`)
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Changelog tidak ditemukan')
+      update('changelog', result.changelog)
+      showToast('success', `Changelog v${result.version} berhasil diambil dari GitHub.`)
+    } catch (error) {
+      showToast('error', error.message || 'Gagal mengambil changelog realtime.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-3">
+        <label htmlFor={`${platform}-changelog`} className={`text-sm font-semibold ${disabled ? 'text-gray-400' : 'text-gray-700'}`}>
+          Changelog / Catatan Rilis
+        </label>
+        <button
+          type="button" onClick={fetchChangelog} disabled={disabled || loading}
+          className="text-xs font-medium text-orange-500 hover:text-orange-600 disabled:text-gray-300 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Mengambil...' : 'Ambil dari changelog realtime'}
+        </button>
+      </div>
+      <textarea
+        id={`${platform}-changelog`} rows={3} disabled={disabled}
+        className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent resize-none bg-white disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+        value={data.changelog} onChange={(e) => update('changelog', e.target.value)}
+        placeholder="Deskripsi singkat perubahan di versi ini..."
+      />
+      <p className={`text-xs ${disabled ? 'text-gray-300' : 'text-gray-400'}`}>
+        Mengambil bagian versi {data.version || 'yang dipilih'} dari CHANGELOG.md repository HCIS-mobile.
+      </p>
+    </div>
+  )
+}
+
 function EnableToggle({ enabled, onChange }) {
   return (
     <button
@@ -326,11 +371,7 @@ function PlatformSection({ title, platform, form, setForm, setDirty, androidIcon
           />
         </div>
         <div className="md:col-span-2">
-          <Field
-            label="Changelog / Catatan Rilis" id={`${platform}-changelog`} type="textarea"
-            value={data.changelog} onChange={(v) => update('changelog', v)}
-            placeholder="Deskripsi singkat perubahan di versi ini..." disabled={disabled}
-          />
+          <ChangelogField platform={platform} data={data} update={update} disabled={disabled} showToast={showToast} />
         </div>
 
         {/* History section */}
