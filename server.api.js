@@ -126,12 +126,16 @@ function parseChangelogEntry(markdown, version) {
 }
 
 async function fetchChangelog() {
-  const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'hcis-download' }
+  const headers = {
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+    'User-Agent': 'hcis-download',
+  }
   const endpoint = `https://api.github.com/repos/${CHANGELOG_REPO}/contents/${CHANGELOG_PATH}?ref=${encodeURIComponent(CHANGELOG_BRANCH)}`
   if (CHANGELOG_TOKEN) headers.Authorization = `Bearer ${CHANGELOG_TOKEN}`
   const response = await fetch(endpoint, { headers })
   if (!response.ok) {
-    const error = new Error(`GitHub API mengembalikan HTTP ${response.status}`)
+    const error = new Error(`GitHub API mengembalikan HTTP ${response.status} untuk ${CHANGELOG_REPO}/${CHANGELOG_PATH}@${CHANGELOG_BRANCH}`)
     error.status = response.status
     error.requestId = response.headers.get('x-github-request-id')
     throw error
@@ -158,7 +162,7 @@ app.get('/api/changelog', async (req, res) => {
     const status = error.status === 404 ? 404 : 502
     res.status(status).json({
       error: status === 404
-        ? 'File CHANGELOG.md tidak ditemukan atau token tidak punya akses ke repository sumber.'
+        ? 'GitHub tidak menemukan file/repository. Untuk repository private, pastikan token memiliki akses Contents: Read-only ke HCIS-mobile.'
         : 'Changelog realtime tidak dapat diambil saat ini',
       diagnostic: error.message,
     })
