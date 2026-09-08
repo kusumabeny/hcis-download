@@ -130,7 +130,12 @@ async function fetchChangelog() {
   const endpoint = `https://api.github.com/repos/${CHANGELOG_REPO}/contents/${CHANGELOG_PATH}?ref=${encodeURIComponent(CHANGELOG_BRANCH)}`
   if (CHANGELOG_TOKEN) headers.Authorization = `Bearer ${CHANGELOG_TOKEN}`
   const response = await fetch(endpoint, { headers })
-  if (!response.ok) throw new Error(`GitHub mengembalikan ${response.status}`)
+  if (!response.ok) {
+    const error = new Error(`GitHub API mengembalikan HTTP ${response.status}`)
+    error.status = response.status
+    error.requestId = response.headers.get('x-github-request-id')
+    throw error
+  }
   const payload = await response.json()
   if (payload.type !== 'file' || !payload.content) throw new Error('File changelog tidak valid')
   return Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8')
@@ -145,8 +150,14 @@ app.get('/api/changelog', async (req, res) => {
     if (!changelog) return res.status(404).json({ error: `Changelog versi ${version} tidak ditemukan` })
     res.json({ version, changelog, source: `${CHANGELOG_REPO}/${CHANGELOG_PATH}@${CHANGELOG_BRANCH}` })
   } catch (error) {
-    console.error('[CHANGELOG] Fetch failed:', error.message)
-    res.status(502).json({ error: 'Changelog realtime tidak dapat diambil saat ini' })
+    console.error('[CHANGELOG] Fetch failed:', error.message, error.requestId ?? '')
+    const status = error.status === 404 ? 404 : 502
+    res.status(status).json({
+      error: status === 404
+        ? 'File CHANGELOG.md tidak ditemukan atau token tidak punya akses ke repository sumber.'
+        : 'Changelog realtime tidak dapat diambil saat ini',
+      diagnostic: error.message,
+    })
   }
 })
 
