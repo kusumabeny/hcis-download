@@ -145,6 +145,7 @@ app.get('/api/changelog', async (req, res) => {
     if (!changelog) return res.status(404).json({ error: `Changelog versi ${version} tidak ditemukan` })
     res.json({ version, changelog, source: `${CHANGELOG_REPO}/${CHANGELOG_PATH}@${CHANGELOG_BRANCH}` })
   } catch (error) {
+    console.error('[CHANGELOG] Fetch failed:', error.message)
     res.status(502).json({ error: 'Changelog realtime tidak dapat diambil saat ini' })
   }
 })

@@ -81,8 +81,18 @@ jobs:
             cd /opt/hcis-download
             test -f docker-compose.yml
             export GITHUB_CHANGELOG_TOKEN="${GITHUB_CHANGELOG_TOKEN:-}"
-            docker compose pull
-            docker compose up -d --no-build --remove-orphans
+            cat > /tmp/hcis-download-secrets.yml <<'EOF'
+            services:
+              hcis-download:
+                environment:
+                  GITHUB_CHANGELOG_TOKEN: ${GITHUB_CHANGELOG_TOKEN}
+            EOF
+            docker compose -f docker-compose.yml -f /tmp/hcis-download-secrets.yml pull
+            docker compose -f docker-compose.yml -f /tmp/hcis-download-secrets.yml up -d --no-build --remove-orphans
+            rm -f /tmp/hcis-download-secrets.yml
+
+            # Fail fast if the secret was not injected into the running container.
+            test -n "$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' hcis-download 2>/dev/null | sed -n 's/^GITHUB_CHANGELOG_TOKEN=//p')" || { echo "GITHUB_CHANGELOG_TOKEN tidak terinjeksi ke container"; exit 1; }
 
             # Tunggu hingga container sehat
             for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
