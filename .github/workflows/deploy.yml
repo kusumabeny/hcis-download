@@ -67,7 +67,7 @@ jobs:
 
       - name: Verify changelog secret is configured
         env:
-          GITHUB_CHANGELOG_TOKEN: ${{ secrets.GITHUB_CHANGELOG_TOKEN }}
+          GITHUB_CHANGELOG_TOKEN: ${{ secrets.CHANGELOG_GITHUB_TOKEN }}
         run: test -n "$GITHUB_CHANGELOG_TOKEN"
 
       - name: Deploy ke server via SSH
@@ -106,4 +106,4 @@ jobs:
             docker compose logs --tail=80 hcis-download
             exit 1
         env:
-          GITHUB_CHANGELOG_TOKEN: ${{ secrets.GITHUB_CHANGELOG_TOKEN }}
+          GITHUB_CHANGELOG_TOKEN: ${{ secrets.CHANGELOG_GITHUB_TOKEN }}

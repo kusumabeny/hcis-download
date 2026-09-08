@@ -170,7 +170,7 @@ Untuk perubahan permanen tanpa rebuild: di admin panel klik **Export JSON** → 
 
 ### Changelog realtime
 
-Admin dapat mengambil catatan rilis berdasarkan versi dari `CHANGELOG.md` repository HCIS-mobile melalui GitHub Contents API. Karena repository sumber bersifat private, isi `GITHUB_CHANGELOG_TOKEN` pada environment server production. Token cukup memiliki izin **Contents: Read-only** pada repository tersebut. Konfigurasi ini tidak memerlukan rebuild image.
+Admin dapat mengambil catatan rilis berdasarkan versi dari `CHANGELOG.md` repository HCIS-mobile melalui GitHub Contents API. Karena repository sumber bersifat private, simpan token sebagai GitHub Actions secret bernama `CHANGELOG_GITHUB_TOKEN`. Workflow meneruskannya ke environment server sebagai `GITHUB_CHANGELOG_TOKEN`. Token cukup memiliki izin **Contents: Read-only** pada repository tersebut. Konfigurasi ini tidak memerlukan rebuild image.
 
 ---
 
