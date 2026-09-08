@@ -71,6 +71,8 @@ jobs:
           host: ${{ env.SERVER_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GITHUB_CHANGELOG_TOKEN
+          envs_format: dotenv
           script: |
             # Login ke GHCR dari server
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -78,6 +80,7 @@ jobs:
             # Pull image terbaru & restart
             cd /opt/hcis-download
             test -f docker-compose.yml
+            export GITHUB_CHANGELOG_TOKEN="${GITHUB_CHANGELOG_TOKEN:-}"
             docker compose pull
             docker compose up -d --no-build --remove-orphans
 
@@ -94,3 +97,5 @@ jobs:
             docker compose ps
             docker compose logs --tail=80 hcis-download
             exit 1
+        env:
+          GITHUB_CHANGELOG_TOKEN: ${{ secrets.GITHUB_CHANGELOG_TOKEN }}

@@ -40,7 +40,10 @@ app.get('/api/releases', (req, res) => {
   }
 })
 
-const CHANGELOG_URL = 'https://raw.githubusercontent.com/kusumabeny/HCIS-mobile/main/CHANGELOG.md'
+const CHANGELOG_REPO = process.env.GITHUB_CHANGELOG_REPO || 'kusumabeny/HCIS-mobile'
+const CHANGELOG_PATH = process.env.GITHUB_CHANGELOG_PATH || 'CHANGELOG.md'
+const CHANGELOG_BRANCH = process.env.GITHUB_CHANGELOG_BRANCH || 'main'
+const CHANGELOG_TOKEN = process.env.GITHUB_CHANGELOG_TOKEN
 
 function parseChangelogEntry(markdown, version) {
   const lines = markdown.split(/\r?\n/)
@@ -50,10 +53,21 @@ function parseChangelogEntry(markdown, version) {
   const entryLines = lines.slice(headingIndex + 1, nextHeading < 0 ? undefined : headingIndex + 1 + nextHeading)
   const changelogLines = entryLines
     .map((line) => line.trim())
-    .filter((line) => /^[-*+]\\s+/.test(line))
-    .map((line) => line.replace(/^[-*+]\\s+/, '').trim())
+    .filter((line) => /^[-*+]\s+/.test(line))
+    .map((line) => line.replace(/^[-*+]\s+/, '').trim())
 
   return changelogLines.join('\n') || null
+}
+
+async function fetchChangelog() {
+  const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'hcis-download' }
+  const endpoint = `https://api.github.com/repos/${CHANGELOG_REPO}/contents/${CHANGELOG_PATH}?ref=${encodeURIComponent(CHANGELOG_BRANCH)}`
+  if (CHANGELOG_TOKEN) headers.Authorization = `Bearer ${CHANGELOG_TOKEN}`
+  const response = await fetch(endpoint, { headers })
+  if (!response.ok) throw new Error(`GitHub mengembalikan ${response.status}`)
+  const payload = await response.json()
+  if (payload.type !== 'file' || !payload.content) throw new Error('File changelog tidak valid')
+  return Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8')
 }
 
 app.get('/api/changelog', async (req, res) => {
@@ -61,11 +75,9 @@ app.get('/api/changelog', async (req, res) => {
   if (!version) return res.status(400).json({ error: 'Versi wajib diisi' })
 
   try {
-    const response = await fetch(CHANGELOG_URL)
-    if (!response.ok) throw new Error(`GitHub mengembalikan ${response.status}`)
-    const changelog = parseChangelogEntry(await response.text(), version)
+    const changelog = parseChangelogEntry(await fetchChangelog(), version)
     if (!changelog) return res.status(404).json({ error: `Changelog versi ${version} tidak ditemukan` })
-    res.json({ version, changelog, source: CHANGELOG_URL })
+    res.json({ version, changelog, source: `${CHANGELOG_REPO}/${CHANGELOG_PATH}@${CHANGELOG_BRANCH}` })
   } catch (error) {
     res.status(502).json({ error: 'Changelog realtime tidak dapat diambil saat ini' })
   }

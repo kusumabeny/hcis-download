@@ -168,6 +168,10 @@ File `src/data/releases.json` adalah data default saat localStorage kosong. Sete
 
 Untuk perubahan permanen tanpa rebuild: di admin panel klik **Export JSON** → replace `src/data/releases.json` → `npm run build` / rebuild Docker.
 
+### Changelog realtime
+
+Admin dapat mengambil catatan rilis berdasarkan versi dari `CHANGELOG.md` repository HCIS-mobile melalui GitHub Contents API. Karena repository sumber bersifat private, isi `GITHUB_CHANGELOG_TOKEN` pada environment server production. Token cukup memiliki izin **Contents: Read-only** pada repository tersebut. Konfigurasi ini tidak memerlukan rebuild image.
+
 ---
 
 ## Struktur Project

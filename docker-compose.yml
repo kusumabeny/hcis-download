@@ -17,6 +17,10 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - GITHUB_CHANGELOG_REPO=${GITHUB_CHANGELOG_REPO:-kusumabeny/HCIS-mobile}
+      - GITHUB_CHANGELOG_PATH=${GITHUB_CHANGELOG_PATH:-CHANGELOG.md}
+      - GITHUB_CHANGELOG_BRANCH=${GITHUB_CHANGELOG_BRANCH:-main}
+      - GITHUB_CHANGELOG_TOKEN=${GITHUB_CHANGELOG_TOKEN:-}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
       interval: 30s
