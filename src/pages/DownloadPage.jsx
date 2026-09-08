@@ -50,6 +50,28 @@ function MetaItem({ icon: Icon, label, value }) {
   )
 }
 
+function ChangelogDisplay({ value }) {
+  if (!value) return null
+
+  const items = value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)
+  return (
+    <div className="rounded-xl border border-orange-100 bg-orange-50/60 px-4 py-3.5 mb-5">
+      <div className="flex items-center gap-2 mb-2.5 text-xs font-bold uppercase tracking-wider text-orange-700">
+        <CheckCircle size={14} />
+        Yang baru di versi ini
+      </div>
+      <ul className="flex flex-col gap-2 text-sm text-gray-600 leading-relaxed">
+        {items.map((item, index) => (
+          <li key={`${item}-${index}`} className="flex items-start gap-2.5">
+            <span className="mt-[0.55rem] h-1.5 w-1.5 rounded-full bg-orange-400 shrink-0" />
+            <span>{item.replace(/^[-*+]\s+/, '')}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function QRPanel({ url, label }) {
   const [open, setOpen] = useState(false)
   const fullUrl = url && url !== '#'
@@ -165,7 +187,7 @@ function AndroidCard({ data, detected }) {
       {disabled && (
         <div className="absolute -top-3.5 left-1/2 -translate-x-1/2"><ComingSoonBadge /></div>
       )}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-6">
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${disabled ? 'bg-gray-50 border border-gray-100' : 'bg-green-50 border border-green-100'}`}>
           <AndroidIcon disabled={disabled} />
         </div>
@@ -176,17 +198,13 @@ function AndroidCard({ data, detected }) {
       </div>
       {disabled ? <DisabledCardOverlay platform="android" /> : (
         <>
-          <div className="flex flex-col gap-3 mb-5">
+          <div className="flex flex-col gap-3 mb-6 rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3.5">
             <MetaItem icon={Info} label="Versi" value={`v${data.version}`} />
             <MetaItem icon={Calendar} label="Rilis" value={data.releaseDate} />
             <MetaItem icon={HardDrive} label="Ukuran" value={data.fileSize} />
             <MetaItem icon={Shield} label="Minimum" value={data.minOsVersion} />
           </div>
-          {data.changelog && (
-            <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 mb-4 leading-relaxed">
-              {data.changelog}
-            </p>
-          )}
+          <ChangelogDisplay value={data.changelog} />
           <div className="mt-auto">
             <DownloadButton url={data.downloadUrl} label="Download APK" variant={detected ? 'primary' : 'secondary'} />
           </div>
@@ -211,7 +229,7 @@ function IosCard({ data, detected }) {
       {disabled && (
         <div className="absolute -top-3.5 left-1/2 -translate-x-1/2"><ComingSoonBadge /></div>
       )}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-6">
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${disabled ? 'bg-gray-50 border border-gray-100' : 'bg-gray-50 border border-gray-100'}`}>
           <Apple size={26} className={disabled ? 'text-gray-300' : 'text-gray-700'} />
         </div>
@@ -222,17 +240,13 @@ function IosCard({ data, detected }) {
       </div>
       {disabled ? <DisabledCardOverlay platform="ios" /> : (
         <>
-          <div className="flex flex-col gap-3 mb-5">
+          <div className="flex flex-col gap-3 mb-6 rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3.5">
             <MetaItem icon={Info} label="Versi" value={`v${data.version}`} />
             <MetaItem icon={Calendar} label="Rilis" value={data.releaseDate} />
             <MetaItem icon={HardDrive} label="Ukuran" value={data.fileSize} />
             <MetaItem icon={Shield} label="Minimum" value={data.minOsVersion} />
           </div>
-          {data.changelog && (
-            <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 mb-4 leading-relaxed">
-              {data.changelog}
-            </p>
-          )}
+          <ChangelogDisplay value={data.changelog} />
           <div className="mt-auto">
             <DownloadButton url={data.downloadUrl} label="Download iOS" variant={detected ? 'primary' : 'secondary'} />
           </div>
