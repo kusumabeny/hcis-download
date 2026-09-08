@@ -81,7 +81,11 @@ app.get('/api/changelog', async (req, res) => {
 
   try {
     const changelog = parseChangelogEntry(await fetchChangelog(), version)
-    if (!changelog) return res.status(404).json({ error: `Changelog versi ${version} tidak ditemukan` })
+    if (!changelog) {
+      return res.status(404).json({
+        error: `Changelog versi ${version} tidak ditemukan di ${CHANGELOG_REPO}/${CHANGELOG_PATH}. Periksa nomor versi atau tambahkan entry tersebut ke CHANGELOG.md.`,
+      })
+    }
     res.json({ version, changelog, source: `${CHANGELOG_REPO}/${CHANGELOG_PATH}@${CHANGELOG_BRANCH}` })
   } catch (error) {
     console.error('[CHANGELOG] Fetch failed:', error.message, error.requestId ?? '')
