@@ -65,6 +65,11 @@ jobs:
           build-args: |
             VITE_ADMIN_PASSWORD=${{ secrets.VITE_ADMIN_PASSWORD }}
 
+      - name: Verify changelog secret is configured
+        env:
+          GITHUB_CHANGELOG_TOKEN: ${{ secrets.GITHUB_CHANGELOG_TOKEN }}
+        run: test -n "$GITHUB_CHANGELOG_TOKEN"
+
       - name: Deploy ke server via SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -72,27 +77,20 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: GITHUB_CHANGELOG_TOKEN
-          envs_format: dotenv
           script: |
+            set -eu
             # Login ke GHCR dari server
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # Pull image terbaru & restart
             cd /opt/hcis-download
             test -f docker-compose.yml
-            export GITHUB_CHANGELOG_TOKEN="${GITHUB_CHANGELOG_TOKEN:-}"
-            cat > /tmp/hcis-download-secrets.yml <<'EOF'
-            services:
-              hcis-download:
-                environment:
-                  GITHUB_CHANGELOG_TOKEN: ${GITHUB_CHANGELOG_TOKEN}
-            EOF
-            docker compose -f docker-compose.yml -f /tmp/hcis-download-secrets.yml pull
-            docker compose -f docker-compose.yml -f /tmp/hcis-download-secrets.yml up -d --no-build --remove-orphans
-            rm -f /tmp/hcis-download-secrets.yml
+            test -n "$GITHUB_CHANGELOG_TOKEN"
+            docker compose pull
+            docker compose up -d --no-build --remove-orphans
 
             # Fail fast if the secret was not injected into the running container.
-            test -n "$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' hcis-download 2>/dev/null | sed -n 's/^GITHUB_CHANGELOG_TOKEN=//p')" || { echo "GITHUB_CHANGELOG_TOKEN tidak terinjeksi ke container"; exit 1; }
+            test -n "$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' hcis-download 2>/dev/null | sed -n 's/^GITHUB_CHANGELOG_TOKEN=//p')"
 
             # Tunggu hingga container sehat
             for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
