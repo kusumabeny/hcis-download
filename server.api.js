@@ -107,7 +107,7 @@ app.post('/api/upload/:platform', upload.single('file'), async (req, res) => {
   })
 })
 
-const CHANGELOG_URL = 'https://raw.githubusercontent.com/kusumabeny/HCIS-mobile/main/presensi-mobile/CHANGELOG.md'
+const CHANGELOG_URL = 'https://raw.githubusercontent.com/kusumabeny/HCIS-mobile/main/CHANGELOG.md'
 
 function parseChangelogEntry(markdown, version) {
   const lines = markdown.split(/\r?\n/)
