@@ -125,6 +125,12 @@ function parseChangelogEntry(markdown, version) {
     .join('\n') || null
 }
 
+function listChangelogVersions(markdown) {
+  return markdown.split(/\r?\n/)
+    .map((line) => line.match(/^##\s+v?([^\s-–—|]+)/i)?.[1])
+    .filter(Boolean)
+}
+
 async function fetchChangelog() {
   const headers = {
     Accept: 'application/vnd.github+json',
@@ -150,10 +156,12 @@ app.get('/api/changelog', async (req, res) => {
   if (!version) return res.status(400).json({ error: 'Versi wajib diisi' })
 
   try {
-    const changelog = parseChangelogEntry(await fetchChangelog(), version)
+    const markdown = await fetchChangelog()
+    const changelog = parseChangelogEntry(markdown, version)
     if (!changelog) {
       return res.status(404).json({
-        error: `Changelog versi ${version} tidak ditemukan di ${CHANGELOG_REPO}/${CHANGELOG_PATH}. Periksa nomor versi atau tambahkan entry tersebut ke CHANGELOG.md.`,
+        error: `Changelog versi ${version} belum tersedia. Tambahkan entry ## ${version} ke CHANGELOG.md sebelum menyimpan rilis ini.`,
+        availableVersions: listChangelogVersions(markdown).slice(0, 10),
       })
     }
     res.json({ version, changelog, source: `${CHANGELOG_REPO}/${CHANGELOG_PATH}@${CHANGELOG_BRANCH}` })

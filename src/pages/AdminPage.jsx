@@ -51,7 +51,12 @@ function ChangelogField({ platform, data, update, disabled, showToast }) {
     try {
       const response = await fetch(`/api/changelog?version=${encodeURIComponent(data.version)}`)
       const result = await response.json()
-      if (!response.ok) throw new Error(result.error || 'Changelog tidak ditemukan')
+      if (!response.ok) {
+        const available = result.availableVersions?.length
+          ? ` Tersedia: ${result.availableVersions.join(', ')}.`
+          : ''
+        throw new Error(`${result.error || 'Changelog tidak ditemukan'}${available}`)
+      }
       update('changelog', result.changelog)
       showToast('success', `Changelog v${result.version} berhasil diambil dari GitHub.`)
     } catch (error) {
