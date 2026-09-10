@@ -84,10 +84,9 @@ function QRPanel({ url, label }) {
     <div className="mt-4 border-t border-gray-100 pt-4">
       <button
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 text-xs text-gray-400 hover:text-orange-500 transition-colors font-medium"
+        className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-50 hover:text-orange-500"
       >
-        <QrCode size={13} />
-        {open ? 'Sembunyikan QR Code' : 'Tampilkan QR Code'}
+        <span className="flex items-center gap-2"><QrCode size={14} />{open ? 'Sembunyikan QR Code' : 'Tampilkan QR Code'}</span>
         {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
       </button>
       {open && (
@@ -114,33 +113,43 @@ function VersionHistory({ history, platform }) {
   if (!history || history.length === 0) return null
 
   return (
-    <div className="mt-3 border-t border-gray-100 pt-3">
+    <div className="mt-5 border-t border-gray-100 pt-4">
       <button
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 text-xs text-gray-400 hover:text-orange-500 transition-colors font-medium"
+        className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-50 hover:text-orange-500"
       >
-        <History size={13} />
-        Riwayat Versi ({history.length})
-        {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        <span className="flex items-center gap-2">
+          <History size={14} />
+          Riwayat versi
+          <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-400">{history.length}</span>
+        </span>
+        {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
       {open && (
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3">
           {history.slice().reverse().map((h, i) => (
             <div key={i} className="flex gap-3 text-xs">
-              <div className="flex flex-col items-center">
-                <div className="w-2 h-2 rounded-full bg-gray-300 mt-1 shrink-0" />
-                {i < history.length - 1 && <div className="w-px flex-1 bg-gray-100 my-1" />}
+              <div className="flex w-3 flex-col items-center">
+                <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-orange-300 ring-4 ring-orange-50" />
+                {i < history.length - 1 && <div className="my-1 w-px flex-1 bg-gray-200" />}
               </div>
-              <div className="pb-2 flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-semibold text-gray-600">v{h.version}</span>
-                  <span className="text-gray-300">·</span>
-                  <span className="text-gray-400">{h.releaseDate}</span>
-                  {h.fileSize && <span className="text-gray-300">·</span>}
-                  {h.fileSize && <span className="text-gray-400">{h.fileSize}</span>}
+              <div className={`min-w-0 flex-1 ${i < history.length - 1 ? 'pb-4' : 'pb-1'}`}>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="font-bold text-gray-700">v{h.version}</span>
+                  <span className="text-gray-300">•</span>
+                  <span className="text-gray-500">{h.releaseDate}</span>
+                  {h.fileSize && <span className="text-gray-300">•</span>}
+                  {h.fileSize && <span className="text-gray-500">{h.fileSize}</span>}
                 </div>
                 {h.changelog && (
-                  <p className="text-gray-400 leading-relaxed">{h.changelog}</p>
+                  <ul className="mt-2 space-y-1.5 text-gray-500 leading-relaxed">
+                    {h.changelog.split(/\r?\n/).map((item, changelogIndex) => (
+                      <li key={`${item}-${changelogIndex}`} className="flex items-start gap-2">
+                        <span className="mt-[0.45rem] h-1 w-1 shrink-0 rounded-full bg-gray-300" />
+                        <span>{item.replace(/^[-*+]\s+/, '')}</span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
             </div>
@@ -187,7 +196,7 @@ function AndroidCard({ data, detected }) {
       {disabled && (
         <div className="absolute -top-3.5 left-1/2 -translate-x-1/2"><ComingSoonBadge /></div>
       )}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-5">
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${disabled ? 'bg-gray-50 border border-gray-100' : 'bg-green-50 border border-green-100'}`}>
           <AndroidIcon disabled={disabled} />
         </div>
@@ -198,7 +207,7 @@ function AndroidCard({ data, detected }) {
       </div>
       {disabled ? <DisabledCardOverlay platform="android" /> : (
         <>
-          <div className="flex flex-col gap-3 mb-6 rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3.5">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-5 rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3.5">
             <MetaItem icon={Info} label="Versi" value={`v${data.version}`} />
             <MetaItem icon={Calendar} label="Rilis" value={data.releaseDate} />
             <MetaItem icon={HardDrive} label="Ukuran" value={data.fileSize} />
@@ -229,7 +238,7 @@ function IosCard({ data, detected }) {
       {disabled && (
         <div className="absolute -top-3.5 left-1/2 -translate-x-1/2"><ComingSoonBadge /></div>
       )}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-5">
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${disabled ? 'bg-gray-50 border border-gray-100' : 'bg-gray-50 border border-gray-100'}`}>
           <Apple size={26} className={disabled ? 'text-gray-300' : 'text-gray-700'} />
         </div>
@@ -240,7 +249,7 @@ function IosCard({ data, detected }) {
       </div>
       {disabled ? <DisabledCardOverlay platform="ios" /> : (
         <>
-          <div className="flex flex-col gap-3 mb-6 rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3.5">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-5 rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3.5">
             <MetaItem icon={Info} label="Versi" value={`v${data.version}`} />
             <MetaItem icon={Calendar} label="Rilis" value={data.releaseDate} />
             <MetaItem icon={HardDrive} label="Ukuran" value={data.fileSize} />
