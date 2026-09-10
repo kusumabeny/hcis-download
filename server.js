@@ -44,6 +44,14 @@ const CHANGELOG_REPO = process.env.GITHUB_CHANGELOG_REPO || 'kusumabeny/HCIS-mob
 const CHANGELOG_PATH = process.env.GITHUB_CHANGELOG_PATH || 'CHANGELOG.md'
 const CHANGELOG_BRANCH = process.env.GITHUB_CHANGELOG_BRANCH || 'main'
 const CHANGELOG_TOKEN = process.env.GITHUB_CHANGELOG_TOKEN
+const PUBLISH_TOKEN = process.env.HCIS_PUBLISH_TOKEN
+
+function requirePublishToken(req, res, next) {
+  if (!PUBLISH_TOKEN || req.get('authorization') !== `Bearer ${PUBLISH_TOKEN}`) {
+    return res.status(401).json({ error: 'Publish token tidak valid' })
+  }
+  next()
+}
 
 function parseChangelogEntry(markdown, version) {
   const lines = markdown.split(/\r?\n/)
@@ -198,6 +206,34 @@ const upload = multer({
     const ext = path.extname(file.originalname).toLowerCase()
     allowed.includes(ext) ? cb(null, true) : cb(new Error(`Tipe file tidak didukung (${ext})`))
   },
+})
+
+// CI/CD endpoint: publish a new mobile APK without deleting older files.
+app.post('/api/releases/publish', requirePublishToken, upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'APK tidak ditemukan' })
+  if (req.body.platform !== 'android') return res.status(400).json({ error: 'Endpoint ini hanya untuk Android' })
+
+  const version = String(req.body.version || '').trim()
+  const releaseDate = String(req.body.releaseDate || new Date().toISOString().slice(0, 10)).trim()
+  const changelog = String(req.body.changelog || '').trim()
+  const commit = String(req.body.commit || '').trim()
+  if (!version || !changelog) return res.status(400).json({ error: 'version dan changelog wajib diisi' })
+
+  const safeVersion = version.replace(/[^0-9A-Za-z.-]/g, '-')
+  const ext = path.extname(req.file.originalname).toLowerCase()
+  const publishedName = `hcis-android-v${safeVersion}-${commit.slice(0, 12) || Date.now()}${ext}`
+  const publishedPath = path.join(downloadsDir, publishedName)
+  fs.renameSync(req.file.path, publishedPath)
+  const meta = await extractApkMeta(publishedPath)
+  const current = JSON.parse(fs.readFileSync(releasesFile, 'utf8'))
+  const previous = current.android
+  const history = Array.isArray(previous?.history) ? previous.history : []
+  if (previous?.version && previous.downloadUrl && previous.downloadUrl !== '#') {
+    history.unshift({ version: previous.version, releaseDate: previous.releaseDate, changelog: previous.changelog, downloadUrl: previous.downloadUrl, fileSize: previous.fileSize, minOsVersion: previous.minOsVersion })
+  }
+  const next = { ...current, android: { ...previous, enabled: true, version, releaseDate, changelog, downloadUrl: `/downloads/${publishedName}`, fileSize: formatBytes(req.file.size), minOsVersion: meta.minOs || previous?.minOsVersion || null, sha256: req.body.sha256 || null, commit: commit || null, history } }
+  fs.writeFileSync(releasesFile, JSON.stringify(next, null, 2) + '\n')
+  res.json(next.android)
 })
 
 // Upload + auto-extract metadata

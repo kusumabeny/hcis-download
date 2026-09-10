@@ -172,6 +172,10 @@ Untuk perubahan permanen tanpa rebuild: di admin panel klik **Export JSON** → 
 
 Admin dapat mengambil catatan rilis berdasarkan versi dari `CHANGELOG.md` repository HCIS-mobile melalui GitHub Contents API. Karena repository sumber bersifat private, simpan token sebagai GitHub Actions secret bernama `CHANGELOG_GITHUB_TOKEN`. Workflow meneruskannya ke environment server sebagai `GITHUB_CHANGELOG_TOKEN`. Token cukup memiliki izin **Contents: Read-only** pada repository tersebut. Konfigurasi ini tidak memerlukan rebuild image.
 
+### Publish APK otomatis dari HCIS-mobile
+
+HCIS-mobile memanggil `POST /api/releases/publish` melalui `http://202.50.203.139:3011`. Setiap APK disimpan memakai nama versi/commit sehingga file lama tetap ada, sementara data release Android otomatis menunjuk ke APK terbaru. Token publish dibuat sendiri secara acak, lalu disimpan sebagai GitHub Actions secret `HCIS_PUBLISH_TOKEN` di repository HCIS-mobile dan repository hcis-download. Nilai token harus sama di kedua repository, tetapi tidak sama dengan `CHANGELOG_GITHUB_TOKEN` atau secret lainnya.
+
 ---
 
 ## Struktur Project

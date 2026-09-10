@@ -68,7 +68,10 @@ jobs:
       - name: Verify changelog secret is configured
         env:
           GITHUB_CHANGELOG_TOKEN: ${{ secrets.CHANGELOG_GITHUB_TOKEN }}
-        run: test -n "$GITHUB_CHANGELOG_TOKEN"
+          HCIS_PUBLISH_TOKEN: ${{ secrets.HCIS_PUBLISH_TOKEN }}
+        run: |
+          test -n "$GITHUB_CHANGELOG_TOKEN"
+          test -n "$HCIS_PUBLISH_TOKEN"
 
       - name: Deploy ke server via SSH
         uses: appleboy/ssh-action@v1
@@ -76,7 +79,7 @@ jobs:
           host: ${{ env.SERVER_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GITHUB_CHANGELOG_TOKEN
+          envs: GITHUB_CHANGELOG_TOKEN,HCIS_PUBLISH_TOKEN
           script: |
             set -eu
             # Login ke GHCR dari server
@@ -86,12 +89,14 @@ jobs:
             cd /opt/hcis-download
             test -f docker-compose.yml
             test -n "$GITHUB_CHANGELOG_TOKEN"
+            test -n "$HCIS_PUBLISH_TOKEN"
             # Inject the token even when the server's checked-out compose file is old.
             cat > /tmp/hcis-download-secrets.yml <<'EOF'
             services:
               hcis-download:
                 environment:
                   GITHUB_CHANGELOG_TOKEN: ${GITHUB_CHANGELOG_TOKEN}
+                  HCIS_PUBLISH_TOKEN: ${HCIS_PUBLISH_TOKEN}
             EOF
             docker compose -f docker-compose.yml -f /tmp/hcis-download-secrets.yml pull
             docker compose -f docker-compose.yml -f /tmp/hcis-download-secrets.yml up -d --no-build --remove-orphans
@@ -99,6 +104,7 @@ jobs:
 
             # Fail fast if the secret was not injected into the running container.
             test -n "$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' hcis-download 2>/dev/null | sed -n 's/^GITHUB_CHANGELOG_TOKEN=//p')"
+            test -n "$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' hcis-download 2>/dev/null | sed -n 's/^HCIS_PUBLISH_TOKEN=//p')"
 
             # Tunggu hingga container sehat
             for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
@@ -115,3 +121,4 @@ jobs:
             exit 1
         env:
           GITHUB_CHANGELOG_TOKEN: ${{ secrets.CHANGELOG_GITHUB_TOKEN }}
+          HCIS_PUBLISH_TOKEN: ${{ secrets.HCIS_PUBLISH_TOKEN }}

@@ -21,6 +21,7 @@ services:
       - GITHUB_CHANGELOG_PATH=${GITHUB_CHANGELOG_PATH:-CHANGELOG.md}
       - GITHUB_CHANGELOG_BRANCH=${GITHUB_CHANGELOG_BRANCH:-main}
       - GITHUB_CHANGELOG_TOKEN=${GITHUB_CHANGELOG_TOKEN:-}
+      - HCIS_PUBLISH_TOKEN=${HCIS_PUBLISH_TOKEN:-}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
       interval: 30s
