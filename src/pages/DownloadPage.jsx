@@ -50,6 +50,11 @@ function MetaItem({ icon: Icon, label, value }) {
   )
 }
 
+function formatReleaseDate(date, time) {
+  if (!date) return '-'
+  return time ? `${date} ${time}` : date
+}
+
 function ChangelogDisplay({ value }) {
   if (!value) return null
 
@@ -110,7 +115,16 @@ function QRPanel({ url, label }) {
 
 function VersionHistory({ history, platform }) {
   const [open, setOpen] = useState(false)
+  const [expandedVersions, setExpandedVersions] = useState(() => new Set())
   if (!history || history.length === 0) return null
+
+  const toggleVersion = (version) => {
+    setExpandedVersions((current) => {
+      const next = new Set(current)
+      next.has(version) ? next.delete(version) : next.add(version)
+      return next
+    })
+  }
 
   return (
     <div className="mt-5 border-t border-gray-100 pt-4">
@@ -127,21 +141,32 @@ function VersionHistory({ history, platform }) {
       </button>
       {open && (
         <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3">
-          {history.slice().reverse().map((h, i) => (
+          {history.slice().reverse().map((h, i) => {
+            const versionKey = `${h.version}-${h.releaseDate}-${i}`
+            const expanded = expandedVersions.has(versionKey)
+            return (
             <div key={i} className="flex gap-3 text-xs">
               <div className="flex w-3 flex-col items-center">
                 <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-orange-300 ring-4 ring-orange-50" />
                 {i < history.length - 1 && <div className="my-1 w-px flex-1 bg-gray-200" />}
               </div>
               <div className={`min-w-0 flex-1 ${i < history.length - 1 ? 'pb-4' : 'pb-1'}`}>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="font-bold text-gray-700">v{h.version}</span>
-                  <span className="text-gray-300">•</span>
-                  <span className="text-gray-500">{h.releaseDate}</span>
-                  {h.fileSize && <span className="text-gray-300">•</span>}
-                  {h.fileSize && <span className="text-gray-500">{h.fileSize}</span>}
-                </div>
-                {h.changelog && (
+                <button
+                  type="button"
+                  onClick={() => toggleVersion(versionKey)}
+                  className="flex w-full items-center justify-between gap-2 text-left transition-colors hover:text-orange-600"
+                  aria-expanded={expanded}
+                >
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-bold text-gray-700">v{h.version}</span>
+                    <span className="text-gray-300">•</span>
+                    <span className="text-gray-500">{formatReleaseDate(h.releaseDate, h.releaseTime)}</span>
+                    {h.fileSize && <span className="text-gray-300">•</span>}
+                    {h.fileSize && <span className="text-gray-500">{h.fileSize}</span>}
+                  </span>
+                  {expanded ? <ChevronUp size={13} className="shrink-0 text-gray-400" /> : <ChevronDown size={13} className="shrink-0 text-gray-400" />}
+                </button>
+                {expanded && h.changelog && (
                   <ul className="mt-2 space-y-1.5 text-gray-500 leading-relaxed">
                     {h.changelog.split(/\r?\n/).map((item, changelogIndex) => (
                       <li key={`${item}-${changelogIndex}`} className="flex items-start gap-2">
@@ -153,7 +178,7 @@ function VersionHistory({ history, platform }) {
                 )}
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>
@@ -209,7 +234,7 @@ function AndroidCard({ data, detected }) {
         <>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-5 rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3.5">
             <MetaItem icon={Info} label="Versi" value={`v${data.version}`} />
-            <MetaItem icon={Calendar} label="Rilis" value={data.releaseDate} />
+            <MetaItem icon={Calendar} label="Rilis" value={formatReleaseDate(data.releaseDate, data.releaseTime)} />
             <MetaItem icon={HardDrive} label="Ukuran" value={data.fileSize} />
             <MetaItem icon={Shield} label="Minimum" value={data.minOsVersion} />
           </div>
@@ -251,7 +276,7 @@ function IosCard({ data, detected }) {
         <>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-5 rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3.5">
             <MetaItem icon={Info} label="Versi" value={`v${data.version}`} />
-            <MetaItem icon={Calendar} label="Rilis" value={data.releaseDate} />
+            <MetaItem icon={Calendar} label="Rilis" value={formatReleaseDate(data.releaseDate, data.releaseTime)} />
             <MetaItem icon={HardDrive} label="Ukuran" value={data.fileSize} />
             <MetaItem icon={Shield} label="Minimum" value={data.minOsVersion} />
           </div>
@@ -333,7 +358,7 @@ export default function DownloadPage({ releases, onAdminClick }) {
             <div className="flex items-center justify-center gap-3 mt-4">
               <span className="text-xs text-gray-400 bg-gray-100 rounded-full px-3 py-1">v{heroData.version}</span>
               <span className="text-gray-300 text-xs">·</span>
-              <span className="text-xs text-gray-400">Rilis {heroData.releaseDate}</span>
+              <span className="text-xs text-gray-400">Rilis {formatReleaseDate(heroData.releaseDate, heroData.releaseTime)}</span>
             </div>
           )}
         </div>

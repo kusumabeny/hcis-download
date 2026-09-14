@@ -215,6 +215,9 @@ app.post('/api/releases/publish', requirePublishToken, upload.single('file'), as
 
   const version = String(req.body.version || '').trim()
   const releaseDate = String(req.body.releaseDate || new Date().toISOString().slice(0, 10)).trim()
+  const releaseTime = String(req.body.releaseTime || new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(new Date())).trim()
   const changelog = String(req.body.changelog || '').trim()
   const commit = String(req.body.commit || '').trim()
   if (!version || !changelog) return res.status(400).json({ error: 'version dan changelog wajib diisi' })
@@ -229,9 +232,9 @@ app.post('/api/releases/publish', requirePublishToken, upload.single('file'), as
   const previous = current.android
   const history = Array.isArray(previous?.history) ? previous.history : []
   if (previous?.version && previous.downloadUrl && previous.downloadUrl !== '#') {
-    history.unshift({ version: previous.version, releaseDate: previous.releaseDate, changelog: previous.changelog, downloadUrl: previous.downloadUrl, fileSize: previous.fileSize, minOsVersion: previous.minOsVersion })
+    history.unshift({ version: previous.version, releaseDate: previous.releaseDate, releaseTime: previous.releaseTime, changelog: previous.changelog, downloadUrl: previous.downloadUrl, fileSize: previous.fileSize, minOsVersion: previous.minOsVersion })
   }
-  const next = { ...current, android: { ...previous, enabled: true, version, releaseDate, changelog, downloadUrl: `/downloads/${publishedName}`, fileSize: formatBytes(req.file.size), minOsVersion: meta.minOs || previous?.minOsVersion || null, sha256: req.body.sha256 || null, commit: commit || null, history } }
+  const next = { ...current, android: { ...previous, enabled: true, version, releaseDate, releaseTime, changelog, downloadUrl: `/downloads/${publishedName}`, fileSize: formatBytes(req.file.size), minOsVersion: meta.minOs || previous?.minOsVersion || null, sha256: req.body.sha256 || null, commit: commit || null, history } }
   fs.writeFileSync(releasesFile, JSON.stringify(next, null, 2) + '\n')
   res.json(next.android)
 })

@@ -287,7 +287,7 @@ function HistoryPanel({ history, onDelete }) {
                 <div className="flex items-center gap-2 text-sm">
                   <span className="font-semibold text-gray-700">v{h.version}</span>
                   <span className="text-gray-300">·</span>
-                  <span className="text-gray-400 text-xs">{h.releaseDate}</span>
+                  <span className="text-gray-400 text-xs">{h.releaseDate}{h.releaseTime ? ` ${h.releaseTime}` : ''}</span>
                   {h.fileSize && <><span className="text-gray-300">·</span><span className="text-gray-400 text-xs">{h.fileSize}</span></>}
                 </div>
                 {h.changelog && <p className="text-xs text-gray-400 leading-relaxed">{h.changelog}</p>}
@@ -355,6 +355,10 @@ function PlatformSection({ title, platform, form, setForm, setDirty, androidIcon
         <Field
           label="Tanggal Rilis" id={`${platform}-date`} type="date"
           value={data.releaseDate} onChange={(v) => update('releaseDate', v)} disabled={disabled}
+        />
+        <Field
+          label="Jam Rilis" id={`${platform}-time`} type="time"
+          value={data.releaseTime ?? ''} onChange={(v) => update('releaseTime', v)} disabled={disabled}
         />
 
         {/* File uploader — full width */}
@@ -436,6 +440,7 @@ export default function AdminPage({ releases, onSave, onBack, onLogout }) {
         const historyEntry = {
           version: prev.version,
           releaseDate: prev.releaseDate,
+          releaseTime: prev.releaseTime,
           changelog: prev.changelog,
           fileSize: prev.fileSize,
         }
