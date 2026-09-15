@@ -173,7 +173,7 @@ Untuk perubahan permanen tanpa rebuild: di admin panel klik **Export JSON** → 
 
 Admin dapat mengambil catatan rilis berdasarkan versi dari `CHANGELOG.md` repository HCIS-mobile melalui GitHub Contents API. Karena repository sumber bersifat private, simpan token sebagai GitHub Actions secret bernama `CHANGELOG_GITHUB_TOKEN`. Workflow meneruskannya ke environment server sebagai `GITHUB_CHANGELOG_TOKEN`. Token cukup memiliki izin **Contents: Read-only** pada repository tersebut. Konfigurasi ini tidak memerlukan rebuild image.
 
-Kartu iOS PWA juga otomatis membaca entry terbaru dari `CHANGELOG-PWA.md` repository HCIS-mobile setiap kali data release diminta (dengan cache server selama 5 menit). Jika GitHub sementara tidak dapat diakses, halaman tetap memakai data release tersimpan. Lokasi dapat diubah melalui `GITHUB_PWA_CHANGELOG_REPO`, `GITHUB_PWA_CHANGELOG_PATH`, dan `GITHUB_PWA_CHANGELOG_BRANCH`.
+Kartu iOS PWA juga otomatis membaca entry terbaru dan mengisi riwayat versi dari `CHANGELOG-PWA.md` repository HCIS-mobile setiap kali data release diminta (dengan cache server selama 5 menit). Jika GitHub sementara tidak dapat diakses, halaman tetap memakai data release tersimpan. Lokasi dapat diubah melalui `GITHUB_PWA_CHANGELOG_REPO`, `GITHUB_PWA_CHANGELOG_PATH`, dan `GITHUB_PWA_CHANGELOG_BRANCH`.
 
 ### Publish APK otomatis dari HCIS-mobile
 

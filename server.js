@@ -76,22 +76,22 @@ function parseChangelogEntry(markdown, version) {
   return changelogLines.join('\n') || null
 }
 
-function parseLatestChangelogEntry(markdown) {
+function parseChangelogEntries(markdown) {
   const lines = markdown.split(/\r?\n/)
-  const headingIndex = lines.findIndex((line) => /^##\s+v?[^\s-–—|]+(?:\s+[-–—|]\s*\d{4}-\d{2}-\d{2})?/i.test(line))
-  if (headingIndex < 0) return null
-
-  const heading = lines[headingIndex].match(/^##\s+v?([^\s-–—|]+)(?:\s+[-–—|]\s*(\d{4}-\d{2}-\d{2}))?/i)
-  if (!heading) return null
-  const nextHeading = lines.slice(headingIndex + 1).findIndex((line) => /^##\s+/.test(line))
-  const entryLines = lines.slice(headingIndex + 1, nextHeading < 0 ? undefined : headingIndex + 1 + nextHeading)
-  const changelog = entryLines
-    .map((line) => line.trim())
-    .filter((line) => /^[-*+]\s+/.test(line))
-    .map((line) => line.replace(/^[-*+]\s+/, '').trim())
-    .join('\n')
-
-  return changelog ? { version: heading[1], releaseDate: heading[2] || null, changelog } : null
+  const entries = []
+  for (let index = 0; index < lines.length; index += 1) {
+    const heading = lines[index].match(/^##\s+v?([^\s-–—|]+)(?:\s+[-–—|]\s*(\d{4}-\d{2}-\d{2}))?/i)
+    if (!heading) continue
+    const entryLines = []
+    for (let next = index + 1; next < lines.length && !/^##\s+/.test(lines[next]); next += 1) {
+      const item = lines[next].trim()
+      if (/^[-*+]\s+/.test(item)) entryLines.push(item.replace(/^[-*+]\s+/, '').trim())
+    }
+    if (entryLines.length > 0) {
+      entries.push({ version: heading[1], releaseDate: heading[2] || null, changelog: entryLines.join('\n') })
+    }
+  }
+  return entries
 }
 
 function listChangelogVersions(markdown) {
@@ -127,7 +127,8 @@ async function applyLatestPwaRelease(releases) {
 
   try {
     const markdown = await fetchChangelog({ repo: PWA_CHANGELOG_REPO, filePath: PWA_CHANGELOG_PATH, branch: PWA_CHANGELOG_BRANCH })
-    const latest = parseLatestChangelogEntry(markdown)
+    const pwaEntries = parseChangelogEntries(markdown)
+    const latest = pwaEntries[0]
     if (!latest) throw new Error(`Entry terbaru tidak ditemukan di ${PWA_CHANGELOG_PATH}`)
 
     const entry = {
@@ -137,6 +138,10 @@ async function applyLatestPwaRelease(releases) {
       changelog: latest.changelog,
       pwaUrl: releases.ios?.pwaUrl || DEFAULT_IOS_PWA_URL,
       downloadUrl: '#',
+      history: pwaEntries.slice(1).map((entry) => ({
+        ...entry,
+        downloadUrl: '#',
+      })),
     }
     pwaReleaseCache = { expiresAt: Date.now() + PWA_RELEASE_CACHE_MS, entry }
     return { ...releases, ios: { ...releases.ios, ...entry } }

@@ -12,15 +12,40 @@
   },
   "ios": {
     "enabled": true,
-    "version": "1.0.0",
-    "releaseDate": "2026-08-06",
+    "version": "1.10.12",
+    "releaseDate": "2026-09-11",
     "releaseTime": "00:00",
-    "changelog": "Akses HCIS melalui PWA untuk pengguna iPhone dan iPad",
+    "changelog": "Menyamakan identitas icon HCIS pada PWA, splash screen, dan loading aplikasi. (Bersama Android)\nMengubah splash screen PWA menjadi dark navy agar tampil konsisten saat aplikasi dibuka. (Bersama Android)\nMengganti tombol mode terang/gelap di Profile dengan icon Sun/Moon yang lebih jelas dan menarik. (Bersama Android)",
     "pwaUrl": "https://hcis.starcoms.co.id/mobile/",
     "downloadUrl": "#",
     "fileSize": "52 MB",
     "minOsVersion": "iOS 14.0+",
-    "history": []
+    "history": [
+      {
+        "version": "1.10.11",
+        "releaseDate": "2026-09-11",
+        "changelog": "Memperbaiki tampilan tanggal cuti di PWA agar selalu mengikuti tanggal kalender dari API.\nMengabaikan suffix waktu/timezone pada tanggal cuti agar tidak bergeser satu hari di iPhone.",
+        "downloadUrl": "#"
+      },
+      {
+        "version": "1.10.10",
+        "releaseDate": "2026-09-11",
+        "changelog": "Memperbaiki parsing tanggal cuti di PWA agar tanggal kalender tidak bergeser karena timezone iPhone.\nMenormalkan tanggal cuti sebagai YYYY-MM-DD saat API menerima pengajuan baru.",
+        "downloadUrl": "#"
+      },
+      {
+        "version": "1.10.9",
+        "releaseDate": "2026-09-11",
+        "changelog": "Memperbaiki tampilan tanggal cuti agar tidak bergeser sehari di iPhone PWA karena perbedaan timezone.\nMenormalkan tanggal mulai dan selesai sebagai tanggal kalender saat disimpan API.",
+        "downloadUrl": "#"
+      },
+      {
+        "version": "1.10.8",
+        "releaseDate": "2026-09-11",
+        "changelog": "Menambahkan tanda bintang pada field wajib di form pengajuan SPJ. (Bersama Android)\nMenandai lokasi tujuan, keperluan, tanggal berangkat, dan tanggal pulang sebagai field wajib. (Bersama Android)",
+        "downloadUrl": "#"
+      }
+    ]
   },
   "appName": "HCIS Mobile",
   "appTagline": "Human Capital Information System"
