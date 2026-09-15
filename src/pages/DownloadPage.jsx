@@ -126,6 +126,7 @@ function QRPanel({ url, label }) {
 function VersionHistory({ history }) {
   const [open, setOpen] = useState(false)
   const [expandedVersions, setExpandedVersions] = useState(() => new Set())
+  const [expandedMonths, setExpandedMonths] = useState(() => new Set())
   if (!history || history.length === 0) return null
 
   const toggleVersion = (version) => {
@@ -136,6 +137,23 @@ function VersionHistory({ history }) {
       return next
     })
   }
+
+  const toggleMonth = (monthKey) => {
+    setExpandedMonths((current) => {
+      const next = new Set(current)
+      if (next.has(monthKey)) next.delete(monthKey)
+      else next.add(monthKey)
+      return next
+    })
+  }
+
+  const monthGroups = history.slice().reverse().reduce((groups, item, index) => {
+    const monthKey = getHistoryMonthKey(item)
+    const current = groups[groups.length - 1]
+    if (current?.key === monthKey) current.items.push({ item, index })
+    else groups.push({ key: monthKey, label: formatHistoryMonth(item.releaseDate), items: [{ item, index }] })
+    return groups
+  }, [])
 
   return (
     <div className="mt-5 border-t border-gray-100 pt-4">
@@ -152,48 +170,84 @@ function VersionHistory({ history }) {
       </button>
       {open && (
         <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3">
-          {history.slice().reverse().map((h, i) => {
-            const versionKey = `${h.version}-${h.releaseDate}-${i}`
-            const expanded = expandedVersions.has(versionKey)
+          {monthGroups.map((group) => {
+            const monthExpanded = expandedMonths.has(group.key)
             return (
-            <div key={i} className="flex gap-3 text-xs">
-              <div className="flex w-3 flex-col items-center">
-                <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-orange-300 ring-4 ring-orange-50" />
-                {i < history.length - 1 && <div className="my-1 w-px flex-1 bg-gray-200" />}
-              </div>
-              <div className={`min-w-0 flex-1 ${i < history.length - 1 ? 'pb-4' : 'pb-1'}`}>
+              <div key={group.key} className="not-first:border-t not-first:border-gray-200">
                 <button
                   type="button"
-                  onClick={() => toggleVersion(versionKey)}
-                  className="flex w-full items-center justify-between gap-2 text-left transition-colors hover:text-orange-600"
-                  aria-expanded={expanded}
+                  onClick={() => toggleMonth(group.key)}
+                  className="flex w-full items-center justify-between gap-2 px-1 py-2 text-left text-xs font-bold uppercase tracking-wider text-gray-500 transition-colors hover:text-orange-600"
+                  aria-expanded={monthExpanded}
                 >
-                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="font-bold text-gray-700">v{h.version}</span>
-                    <span className="text-gray-300">•</span>
-                    <span className="text-gray-500">{formatReleaseDate(h.releaseDate, h.releaseTime)}</span>
-                    {h.fileSize && <span className="text-gray-300">•</span>}
-                    {h.fileSize && <span className="text-gray-500">{h.fileSize}</span>}
+                  <span className="flex items-center gap-2">
+                    {group.label}
+                    <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-gray-400">{group.items.length}</span>
                   </span>
-                  {expanded ? <ChevronUp size={13} className="shrink-0 text-gray-400" /> : <ChevronDown size={13} className="shrink-0 text-gray-400" />}
+                  {monthExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                 </button>
-                {expanded && h.changelog && (
-                  <ul className="mt-2 space-y-1.5 text-gray-500 leading-relaxed">
-                    {h.changelog.split(/\r?\n/).map((item, changelogIndex) => (
-                      <li key={`${item}-${changelogIndex}`} className="flex items-start gap-2">
-                        <span className="mt-[0.45rem] h-1 w-1 shrink-0 rounded-full bg-gray-300" />
-                        <span>{item.replace(/^[-*+]\s+/, '')}</span>
-                      </li>
-                    ))}
-                  </ul>
+                {monthExpanded && (
+                  <div className="pb-2">
+                    {group.items.map(({ item: h, index }, itemIndex) => {
+                      const versionKey = `${h.version}-${h.releaseDate}-${index}`
+                      const expanded = expandedVersions.has(versionKey)
+                      return (
+                        <div key={versionKey} className="flex gap-3 text-xs">
+                          <div className="flex w-3 flex-col items-center">
+                            <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-orange-300 ring-4 ring-orange-50" />
+                            {itemIndex < group.items.length - 1 && <div className="my-1 w-px flex-1 bg-gray-200" />}
+                          </div>
+                          <div className={`min-w-0 flex-1 ${itemIndex < group.items.length - 1 ? 'pb-4' : 'pb-1'}`}>
+                            <button
+                              type="button"
+                              onClick={() => toggleVersion(versionKey)}
+                              className="flex w-full items-center justify-between gap-2 text-left transition-colors hover:text-orange-600"
+                              aria-expanded={expanded}
+                            >
+                              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <span className="font-bold text-gray-700">v{h.version}</span>
+                                <span className="text-gray-300">•</span>
+                                <span className="text-gray-500">{formatReleaseDate(h.releaseDate, h.releaseTime)}</span>
+                                {h.fileSize && <span className="text-gray-300">•</span>}
+                                {h.fileSize && <span className="text-gray-500">{h.fileSize}</span>}
+                              </span>
+                              {expanded ? <ChevronUp size={13} className="shrink-0 text-gray-400" /> : <ChevronDown size={13} className="shrink-0 text-gray-400" />}
+                            </button>
+                            {expanded && h.changelog && (
+                              <ul className="mt-2 space-y-1.5 text-gray-500 leading-relaxed">
+                                {h.changelog.split(/\r?\n/).map((change, changelogIndex) => (
+                                  <li key={`${change}-${changelogIndex}`} className="flex items-start gap-2">
+                                    <span className="mt-[0.45rem] h-1 w-1 shrink-0 rounded-full bg-gray-300" />
+                                    <span>{change.replace(/^[-*+]\s+/, '')}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 )}
               </div>
-            </div>
-          )})}
+            )
+          })}
         </div>
       )}
     </div>
   )
+}
+
+function getHistoryMonthKey(item) {
+  return item.releaseDate?.slice(0, 7) || 'unknown'
+}
+
+function formatHistoryMonth(date) {
+  if (!date) return 'Tanggal tidak diketahui'
+  const parsed = new Date(`${date.slice(0, 7)}-01T00:00:00`)
+  return Number.isNaN(parsed.getTime())
+    ? 'Tanggal tidak diketahui'
+    : new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(parsed)
 }
 
 function DisabledCardOverlay({ platform }) {
