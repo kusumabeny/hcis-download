@@ -110,7 +110,13 @@ app.post('/api/upload/:platform', upload.single('file'), async (req, res) => {
 const CHANGELOG_REPO = process.env.GITHUB_CHANGELOG_REPO || 'kusumabeny/HCIS-mobile'
 const CHANGELOG_PATH = process.env.GITHUB_CHANGELOG_PATH || 'CHANGELOG.md'
 const CHANGELOG_BRANCH = process.env.GITHUB_CHANGELOG_BRANCH || 'main'
+const PWA_CHANGELOG_REPO = process.env.GITHUB_PWA_CHANGELOG_REPO || CHANGELOG_REPO
+const PWA_CHANGELOG_PATH = process.env.GITHUB_PWA_CHANGELOG_PATH || 'CHANGELOG-PWA.md'
+const PWA_CHANGELOG_BRANCH = process.env.GITHUB_PWA_CHANGELOG_BRANCH || CHANGELOG_BRANCH
 const CHANGELOG_TOKEN = process.env.GITHUB_CHANGELOG_TOKEN
+const DEFAULT_IOS_PWA_URL = 'https://hcis.starcoms.co.id/mobile/'
+const PWA_RELEASE_CACHE_MS = 5 * 60 * 1000
+let pwaReleaseCache = { expiresAt: 0, entry: null }
 
 function parseChangelogEntry(markdown, version) {
   const lines = markdown.split(/\r?\n/)
@@ -125,23 +131,41 @@ function parseChangelogEntry(markdown, version) {
     .join('\n') || null
 }
 
+function parseLatestChangelogEntry(markdown) {
+  const lines = markdown.split(/\r?\n/)
+  const headingIndex = lines.findIndex((line) => /^##\s+v?[^\s-–—|]+(?:\s+[-–—|]\s*\d{4}-\d{2}-\d{2})?/i.test(line))
+  if (headingIndex < 0) return null
+
+  const heading = lines[headingIndex].match(/^##\s+v?([^\s-–—|]+)(?:\s+[-–—|]\s*(\d{4}-\d{2}-\d{2}))?/i)
+  if (!heading) return null
+  const nextHeading = lines.slice(headingIndex + 1).findIndex((line) => /^##\s+/.test(line))
+  const entryLines = lines.slice(headingIndex + 1, nextHeading < 0 ? undefined : headingIndex + 1 + nextHeading)
+  const changelog = entryLines
+    .map((line) => line.trim())
+    .filter((line) => /^[-*+]\s+/.test(line))
+    .map((line) => line.replace(/^[-*+]\s+/, '').trim())
+    .join('\n')
+
+  return changelog ? { version: heading[1], releaseDate: heading[2] || null, changelog } : null
+}
+
 function listChangelogVersions(markdown) {
   return markdown.split(/\r?\n/)
     .map((line) => line.match(/^##\s+v?([^\s-–—|]+)/i)?.[1])
     .filter(Boolean)
 }
 
-async function fetchChangelog() {
+async function fetchChangelog({ repo = CHANGELOG_REPO, filePath = CHANGELOG_PATH, branch = CHANGELOG_BRANCH } = {}) {
   const headers = {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
     'User-Agent': 'hcis-download',
   }
-  const endpoint = `https://api.github.com/repos/${CHANGELOG_REPO}/contents/${CHANGELOG_PATH}?ref=${encodeURIComponent(CHANGELOG_BRANCH)}`
+  const endpoint = `https://api.github.com/repos/${repo}/contents/${filePath}?ref=${encodeURIComponent(branch)}`
   if (CHANGELOG_TOKEN) headers.Authorization = `Bearer ${CHANGELOG_TOKEN}`
   const response = await fetch(endpoint, { headers })
   if (!response.ok) {
-    const error = new Error(`GitHub API mengembalikan HTTP ${response.status} untuk ${CHANGELOG_REPO}/${CHANGELOG_PATH}@${CHANGELOG_BRANCH}`)
+    const error = new Error(`GitHub API mengembalikan HTTP ${response.status} untuk ${repo}/${filePath}@${branch}`)
     error.status = response.status
     error.requestId = response.headers.get('x-github-request-id')
     throw error
@@ -150,6 +174,42 @@ async function fetchChangelog() {
   if (payload.type !== 'file' || !payload.content) throw new Error('File changelog tidak valid')
   return Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8')
 }
+
+async function getReleasesWithPwa() {
+  const releasesPath = path.join(__dirname, 'src', 'data', 'releases.json')
+  const releases = JSON.parse(fs.readFileSync(releasesPath, 'utf8'))
+  if (pwaReleaseCache.expiresAt > Date.now() && pwaReleaseCache.entry) {
+    return { ...releases, ios: { ...releases.ios, ...pwaReleaseCache.entry } }
+  }
+
+  try {
+    const markdown = await fetchChangelog({ repo: PWA_CHANGELOG_REPO, filePath: PWA_CHANGELOG_PATH, branch: PWA_CHANGELOG_BRANCH })
+    const latest = parseLatestChangelogEntry(markdown)
+    if (!latest) throw new Error(`Entry terbaru tidak ditemukan di ${PWA_CHANGELOG_PATH}`)
+
+    const entry = {
+      enabled: true,
+      version: latest.version,
+      ...(latest.releaseDate ? { releaseDate: latest.releaseDate } : {}),
+      changelog: latest.changelog,
+      pwaUrl: releases.ios?.pwaUrl || DEFAULT_IOS_PWA_URL,
+      downloadUrl: '#',
+    }
+    pwaReleaseCache = { expiresAt: Date.now() + PWA_RELEASE_CACHE_MS, entry }
+    return { ...releases, ios: { ...releases.ios, ...entry } }
+  } catch (error) {
+    console.warn('[PWA CHANGELOG] Auto-update gagal, memakai data release default:', error.message)
+    return releases
+  }
+}
+
+app.get('/api/releases', async (req, res) => {
+  try {
+    res.json(await getReleasesWithPwa())
+  } catch (error) {
+    res.status(500).json({ error: 'Gagal membaca data release', diagnostic: error.message })
+  }
+})
 
 app.get('/api/changelog', async (req, res) => {
   const version = String(req.query.version || '').trim()
