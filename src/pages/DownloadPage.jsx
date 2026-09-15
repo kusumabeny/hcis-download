@@ -2,13 +2,23 @@ import { useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import {
   Download, Smartphone, Apple, CheckCircle, Calendar,
-  HardDrive, Info, Shield, Clock, QrCode, ChevronDown, ChevronUp, History
+  HardDrive, Info, Shield, Clock, QrCode, ChevronDown, ChevronUp, History, ExternalLink
 } from 'lucide-react'
+
+const DEFAULT_IOS_PWA_URL = 'https://hcis.starcoms.co.id/mobile/'
 
 function PlatformBadge() {
   return (
     <span className="inline-flex items-center gap-1 text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200 rounded-full px-3 py-1 uppercase tracking-wider">
       <CheckCircle size={11} /> Terdeteksi
+    </span>
+  )
+}
+
+function PwaBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1 uppercase tracking-wider">
+      <CheckCircle size={11} /> Tersedia via PWA
     </span>
   )
 }
@@ -113,7 +123,7 @@ function QRPanel({ url, label }) {
   )
 }
 
-function VersionHistory({ history, platform }) {
+function VersionHistory({ history }) {
   const [open, setOpen] = useState(false)
   const [expandedVersions, setExpandedVersions] = useState(() => new Set())
   if (!history || history.length === 0) return null
@@ -121,7 +131,8 @@ function VersionHistory({ history, platform }) {
   const toggleVersion = (version) => {
     setExpandedVersions((current) => {
       const next = new Set(current)
-      next.has(version) ? next.delete(version) : next.add(version)
+      if (next.has(version)) next.delete(version)
+      else next.add(version)
       return next
     })
   }
@@ -242,7 +253,7 @@ function AndroidCard({ data, detected }) {
           <div className="mt-auto">
             <DownloadButton url={data.downloadUrl} label="Download APK" variant={detected ? 'primary' : 'secondary'} />
           </div>
-          <VersionHistory history={data.history} platform="android" />
+          <VersionHistory history={data.history} />
           <QRPanel url={data.downloadUrl} label="Android APK" />
         </>
       )}
@@ -251,43 +262,48 @@ function AndroidCard({ data, detected }) {
 }
 
 function IosCard({ data, detected }) {
-  const disabled = !data.enabled
+  const pwaUrl = data.pwaUrl || DEFAULT_IOS_PWA_URL
   return (
     <div className={`relative flex flex-col rounded-2xl border bg-white p-6 transition-all duration-200
-      ${disabled ? 'border-gray-100 shadow-none opacity-70'
-        : detected ? 'border-orange-400 shadow-xl shadow-orange-100 ring-2 ring-orange-300/40 scale-[1.02]'
-        : 'border-gray-200 shadow-sm hover:shadow-md'}`}>
-      {!disabled && detected && (
-        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2"><PlatformBadge /></div>
-      )}
-      {disabled && (
-        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2"><ComingSoonBadge /></div>
-      )}
+      ${detected ? 'border-indigo-400 shadow-xl shadow-indigo-100 ring-2 ring-indigo-300/40 scale-[1.02]'
+        : 'border-indigo-200 shadow-sm hover:shadow-md'}`}>
+      <div className="absolute -top-3.5 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap">
+        <PwaBadge />
+        {detected && <PlatformBadge />}
+      </div>
       <div className="flex items-center gap-3 mb-5">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${disabled ? 'bg-gray-50 border border-gray-100' : 'bg-gray-50 border border-gray-100'}`}>
-          <Apple size={26} className={disabled ? 'text-gray-300' : 'text-gray-700'} />
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-indigo-50 border border-indigo-100">
+          <Apple size={26} className="text-gray-700" />
         </div>
         <div>
-          <h3 className={`font-bold text-lg ${disabled ? 'text-gray-400' : 'text-gray-800'}`}>iOS</h3>
-          <p className="text-xs text-gray-400">IPA / App Store</p>
+          <h3 className="font-bold text-lg text-gray-800">iOS</h3>
+          <p className="text-xs text-indigo-500 font-medium">HCIS PWA untuk iPhone/iPad</p>
         </div>
       </div>
-      {disabled ? <DisabledCardOverlay platform="ios" /> : (
-        <>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-5 rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3.5">
-            <MetaItem icon={Info} label="Versi" value={`v${data.version}`} />
-            <MetaItem icon={Calendar} label="Rilis" value={formatReleaseDate(data.releaseDate, data.releaseTime)} />
-            <MetaItem icon={HardDrive} label="Ukuran" value={data.fileSize} />
-            <MetaItem icon={Shield} label="Minimum" value={data.minOsVersion} />
-          </div>
-          <ChangelogDisplay value={data.changelog} />
-          <div className="mt-auto">
-            <DownloadButton url={data.downloadUrl} label="Download iOS" variant={detected ? 'primary' : 'secondary'} />
-          </div>
-          <VersionHistory history={data.history} platform="ios" />
-          <QRPanel url={data.downloadUrl} label="iOS" />
-        </>
-      )}
+      <div className="mb-5 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3.5">
+        <p className="text-sm font-semibold text-indigo-800">Akses langsung dari browser</p>
+        <p className="mt-1 text-xs leading-relaxed text-indigo-600">Tidak perlu install IPA. Buka PWA di Safari, lalu pilih “Add to Home Screen” untuk memasangnya di iPhone.</p>
+      </div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-5 rounded-xl border border-gray-100 bg-gray-50/70 px-4 py-3.5">
+        <MetaItem icon={Info} label="Versi" value={`v${data.version}`} />
+        <MetaItem icon={Calendar} label="Rilis" value={formatReleaseDate(data.releaseDate, data.releaseTime)} />
+        <MetaItem icon={Shield} label="Minimum" value={data.minOsVersion} />
+        <MetaItem icon={Smartphone} label="Akses" value="Safari / PWA" />
+      </div>
+      <ChangelogDisplay value={data.changelog} />
+      <div className="mt-auto">
+        <a
+          href={pwaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`inline-flex items-center gap-2 rounded-xl font-semibold text-sm transition-all duration-200 px-5 py-2.5 ${detected ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'}`}
+        >
+          <ExternalLink size={15} />
+          Buka HCIS PWA
+        </a>
+      </div>
+      <VersionHistory history={data.history} />
+      <QRPanel url={pwaUrl} label="HCIS PWA" />
     </div>
   )
 }
@@ -298,13 +314,16 @@ export default function DownloadPage({ releases, onAdminClick }) {
   const ua = navigator.userAgent.toLowerCase()
   const isAndroid = /android/.test(ua)
   const isIos = /ipad|iphone|ipod/.test(ua)
+  const iosPwaUrl = data.ios.pwaUrl || DEFAULT_IOS_PWA_URL
+  const iosPwaAvailable = Boolean(iosPwaUrl)
 
   const detectedPlatform = isIos ? 'ios' : 'android'
-  const detectedEnabled = isIos ? data.ios.enabled : data.android.enabled
-  const fallbackPlatform = data.android.enabled ? 'android' : data.ios.enabled ? 'ios' : null
+  const detectedEnabled = isIos ? iosPwaAvailable : data.android.enabled
+  const fallbackPlatform = data.android.enabled ? 'android' : iosPwaAvailable ? 'ios' : null
   const heroPlatform = detectedEnabled ? detectedPlatform : fallbackPlatform
   const heroData = heroPlatform === 'ios' ? data.ios : data.android
-  const bothDisabled = !data.android.enabled && !data.ios.enabled
+  const bothDisabled = !data.android.enabled && !iosPwaAvailable
+  const heroUrl = heroPlatform === 'ios' ? iosPwaUrl : heroData?.downloadUrl
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -344,13 +363,15 @@ export default function DownloadPage({ releases, onAdminClick }) {
             </div>
           ) : (
             <a
-              href={heroData?.downloadUrl || '#'}
-              download
-              onClick={(e) => { if (!heroData?.downloadUrl || heroData.downloadUrl === '#') e.preventDefault() }}
+              href={heroUrl || '#'}
+              {...(heroPlatform === 'ios'
+                ? { target: '_blank', rel: 'noopener noreferrer' }
+                : { download: true })}
+              onClick={(e) => { if (!heroUrl || heroUrl === '#') e.preventDefault() }}
               className="inline-flex items-center gap-3 bg-gray-900 hover:bg-gray-800 text-white font-bold text-base rounded-2xl px-8 py-4 shadow-lg shadow-gray-900/20 transition-all duration-200 active:scale-95"
             >
-              <Download size={20} />
-              {heroPlatform === 'ios' ? 'Download untuk iOS' : 'Download untuk Android'}
+              {heroPlatform === 'ios' ? <ExternalLink size={20} /> : <Download size={20} />}
+              {heroPlatform === 'ios' ? 'Buka HCIS PWA' : 'Download untuk Android'}
             </a>
           )}
 
@@ -374,10 +395,11 @@ export default function DownloadPage({ releases, onAdminClick }) {
           <IosCard data={data.ios} detected={isIos} />
         </div>
 
-        {data.android.enabled && (
+        {(data.android.enabled || iosPwaAvailable) && (
           <p className="mt-10 text-xs text-gray-400 text-center max-w-md">
-            Untuk instalasi Android, pastikan opsi <strong>"Sumber Tidak Dikenal"</strong> diaktifkan di pengaturan perangkat Anda.
-            {data.ios.enabled && ' iOS hanya tersedia melalui TestFlight atau distribusi enterprise.'}
+            {data.android.enabled && <>Untuk instalasi Android, pastikan opsi <strong>"Sumber Tidak Dikenal"</strong> diaktifkan di pengaturan perangkat Anda.</>}
+            {data.android.enabled && iosPwaAvailable && ' '}
+            {iosPwaAvailable && 'iOS tersedia melalui PWA di Safari.'}
           </p>
         )}
       </main>

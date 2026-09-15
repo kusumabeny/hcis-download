@@ -17,12 +17,13 @@ Halaman download resmi HCIS Mobile App (Android & iOS) dengan admin panel untuk 
 
 ## Fitur
 
-- **Deteksi platform otomatis** — browser Android/iOS langsung dapat tombol download yang sesuai
+- **Deteksi platform otomatis** — browser Android mendapat tombol download APK, iPhone/iPad mendapat akses PWA
 - **Upload file APK / IPA / AAB** — drag & drop atau klik, progress bar real-time
+- **Akses iOS via PWA** — iPhone/iPad diarahkan ke PWA dan dapat ditambahkan ke Home Screen
 - **Auto-extract metadata** dari file APK/IPA: versi, minimum OS, ukuran file
 - **QR Code** per platform — klik expand di card download
 - **Riwayat versi** — auto-push ke history saat versi berubah, tampil di halaman publik
-- **Enable / Disable** per platform — nonaktif tampil sebagai "Segera Hadir"
+- **Enable / Disable** per platform — platform native yang nonaktif tampil sebagai "Segera Hadir"
 - **Admin panel** terproteksi password
 
 ---
