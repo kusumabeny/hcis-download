@@ -147,7 +147,17 @@ async function applyLatestPwaRelease(releases) {
     return { ...releases, ios: { ...releases.ios, ...entry } }
   } catch (error) {
     console.warn('[PWA CHANGELOG] Auto-update gagal, memakai data release tersimpan:', error.message)
-    return releases
+    // The persistent /app/data volume can contain an older release snapshot.
+    // Prefer the image-bundled fallback so a GitHub API outage does not keep
+    // the public iOS card stuck on an obsolete version indefinitely.
+    try {
+      const bundledReleasesFile = path.join(distDir, 'releases.json')
+      const bundledReleases = JSON.parse(fs.readFileSync(bundledReleasesFile, 'utf8'))
+      return { ...releases, ios: { ...releases.ios, ...bundledReleases.ios } }
+    } catch (fallbackError) {
+      console.warn('[PWA CHANGELOG] Fallback bundled release gagal:', fallbackError.message)
+      return releases
+    }
   }
 }
 

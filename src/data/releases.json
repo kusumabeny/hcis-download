@@ -12,15 +12,27 @@
   },
   "ios": {
     "enabled": true,
-    "version": "1.10.12",
-    "releaseDate": "2026-09-11",
+    "version": "1.14.3",
+    "releaseDate": "2026-09-21",
     "releaseTime": "00:00",
-    "changelog": "Menyamakan identitas icon HCIS pada PWA, splash screen, dan loading aplikasi. (Bersama Android)\nMengubah splash screen PWA menjadi dark navy agar tampil konsisten saat aplikasi dibuka. (Bersama Android)\nMengganti tombol mode terang/gelap di Profile dengan icon Sun/Moon yang lebih jelas dan menarik. (Bersama Android)",
+    "changelog": "Memperbaiki pemuatan Changelog pada Safari iOS lama yang belum mendukung AbortSignal.timeout.\nMenambahkan ruang aman di bagian bawah Profile agar konten tidak tertutup navigation bar PWA iOS.",
     "pwaUrl": "https://hcis.starcoms.co.id/mobile/",
     "downloadUrl": "#",
     "fileSize": "52 MB",
     "minOsVersion": "iOS 14.0+",
     "history": [
+      {
+        "version": "1.14.2",
+        "releaseDate": "2026-09-17",
+        "changelog": "Menambahkan jarak antara header profil biru dan kartu informasi email.\nMenyederhanakan pengaturan tema menjadi kontrol ikon matahari/bulan.",
+        "downloadUrl": "#"
+      },
+      {
+        "version": "1.14.1",
+        "releaseDate": "2026-09-17",
+        "changelog": "Memperbaiki reminder PWA agar tetap berjalan saat Web Push sudah aktif atau belum dikonfigurasi.\nReminder PWA tetap dijadwalkan saat endpoint presensi sedang gagal sementara.",
+        "downloadUrl": "#"
+      },
       {
         "version": "1.10.11",
         "releaseDate": "2026-09-11",
