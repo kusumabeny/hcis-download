@@ -53,7 +53,7 @@ const CHANGELOG_TOKEN = process.env.GITHUB_CHANGELOG_TOKEN
 const PUBLISH_TOKEN = process.env.HCIS_PUBLISH_TOKEN
 const DEFAULT_IOS_PWA_URL = 'https://hcis.starcoms.co.id/mobile/'
 const PWA_RELEASE_CACHE_MS = 5 * 60 * 1000
-let pwaReleaseCache = { expiresAt: 0, entry: null }
+let pwaReleaseCache = { expiresAt: 0, entry: null, refreshPromise: null }
 
 function requirePublishToken(req, res, next) {
   if (!PUBLISH_TOKEN || req.get('authorization') !== `Bearer ${PUBLISH_TOKEN}`) {
@@ -120,45 +120,57 @@ async function fetchChangelog({ repo = CHANGELOG_REPO, filePath = CHANGELOG_PATH
   return Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8')
 }
 
-async function applyLatestPwaRelease(releases) {
-  if (pwaReleaseCache.expiresAt > Date.now() && pwaReleaseCache.entry) {
-    return { ...releases, ios: { ...releases.ios, ...pwaReleaseCache.entry } }
-  }
+function refreshLatestPwaRelease(releases) {
+  if (pwaReleaseCache.refreshPromise) return pwaReleaseCache.refreshPromise
 
-  try {
-    const markdown = await fetchChangelog({ repo: PWA_CHANGELOG_REPO, filePath: PWA_CHANGELOG_PATH, branch: PWA_CHANGELOG_BRANCH })
-    const pwaEntries = parseChangelogEntries(markdown)
-    const latest = pwaEntries[0]
-    if (!latest) throw new Error(`Entry terbaru tidak ditemukan di ${PWA_CHANGELOG_PATH}`)
+  pwaReleaseCache.refreshPromise = fetchChangelog({ repo: PWA_CHANGELOG_REPO, filePath: PWA_CHANGELOG_PATH, branch: PWA_CHANGELOG_BRANCH })
+    .then((markdown) => {
+      const pwaEntries = parseChangelogEntries(markdown)
+      const latest = pwaEntries[0]
+      if (!latest) throw new Error(`Entry terbaru tidak ditemukan di ${PWA_CHANGELOG_PATH}`)
 
-    const entry = {
-      enabled: true,
-      version: latest.version,
-      ...(latest.releaseDate ? { releaseDate: latest.releaseDate } : {}),
-      changelog: latest.changelog,
-      pwaUrl: releases.ios?.pwaUrl || DEFAULT_IOS_PWA_URL,
-      downloadUrl: '#',
-      history: pwaEntries.slice(1).map((entry) => ({
-        ...entry,
+      const entry = {
+        enabled: true,
+        version: latest.version,
+        ...(latest.releaseDate ? { releaseDate: latest.releaseDate } : {}),
+        changelog: latest.changelog,
+        pwaUrl: releases.ios?.pwaUrl || DEFAULT_IOS_PWA_URL,
         downloadUrl: '#',
-      })),
-    }
-    pwaReleaseCache = { expiresAt: Date.now() + PWA_RELEASE_CACHE_MS, entry }
-    return { ...releases, ios: { ...releases.ios, ...entry } }
-  } catch (error) {
-    console.warn('[PWA CHANGELOG] Auto-update gagal, memakai data release tersimpan:', error.message)
-    // The persistent /app/data volume can contain an older release snapshot.
-    // Prefer the image-bundled fallback so a GitHub API outage does not keep
-    // the public iOS card stuck on an obsolete version indefinitely.
-    try {
-      const bundledReleasesFile = path.join(distDir, 'releases.json')
-      const bundledReleases = JSON.parse(fs.readFileSync(bundledReleasesFile, 'utf8'))
-      return { ...releases, ios: { ...releases.ios, ...bundledReleases.ios } }
-    } catch (fallbackError) {
-      console.warn('[PWA CHANGELOG] Fallback bundled release gagal:', fallbackError.message)
-      return releases
-    }
+        history: pwaEntries.slice(1).map((entry) => ({ ...entry, downloadUrl: '#' })),
+      }
+      pwaReleaseCache = { expiresAt: Date.now() + PWA_RELEASE_CACHE_MS, entry, refreshPromise: null }
+    })
+    .catch((error) => {
+      console.warn('[PWA CHANGELOG] Background update gagal, memakai data release tersimpan:', error.message)
+      try {
+        const bundledReleasesFile = path.join(distDir, 'releases.json')
+        const bundledReleases = JSON.parse(fs.readFileSync(bundledReleasesFile, 'utf8'))
+        pwaReleaseCache = {
+          expiresAt: Date.now() + PWA_RELEASE_CACHE_MS,
+          entry: bundledReleases.ios,
+          refreshPromise: null,
+        }
+      } catch (fallbackError) {
+        console.warn('[PWA CHANGELOG] Fallback bundled release gagal:', fallbackError.message)
+        pwaReleaseCache.refreshPromise = null
+      }
+    })
+
+  return pwaReleaseCache.refreshPromise
+}
+
+function applyLatestPwaRelease(releases) {
+  const cachedEntry = pwaReleaseCache.entry
+  const response = cachedEntry
+    ? { ...releases, ios: { ...releases.ios, ...cachedEntry } }
+    : releases
+
+  if (pwaReleaseCache.expiresAt <= Date.now()) {
+    // Do not make the public page wait for GitHub. Refresh for the next request.
+    refreshLatestPwaRelease(releases)
   }
+
+  return response
 }
 
 app.get('/api/changelog', async (req, res) => {
