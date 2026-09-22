@@ -12,15 +12,21 @@
   },
   "ios": {
     "enabled": true,
-    "version": "1.14.4",
+    "version": "1.14.5",
     "releaseDate": "2026-09-21",
     "releaseTime": "00:00",
-    "changelog": "Memperbaiki Changelog di PWA agar membaca riwayat rilis iOS, bukan riwayat Android.",
+    "changelog": "Memperbaiki tombol aktivasi notifikasi PWA agar public key dapat diambil dari backend saat digunakan.\nTombol notifikasi tidak lagi terkunci hanya karena public key tidak tersedia saat build PWA.",
     "pwaUrl": "https://hcis.starcoms.co.id/mobile/",
     "downloadUrl": "#",
     "fileSize": "52 MB",
     "minOsVersion": "iOS 14.0+",
     "history": [
+      {
+        "version": "1.14.4",
+        "releaseDate": "2026-09-21",
+        "changelog": "Memperbaiki Changelog di PWA agar membaca riwayat rilis iOS, bukan riwayat Android.",
+        "downloadUrl": "#"
+      },
       {
         "version": "1.14.3",
         "releaseDate": "2026-09-21",
