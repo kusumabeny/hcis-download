@@ -155,6 +155,28 @@ function listChangelogVersions(markdown) {
     .filter(Boolean)
 }
 
+function dedupeReleaseHistory(release) {
+  if (!release || !Array.isArray(release.history)) return release
+
+  const seenVersions = new Set(release.version ? [release.version] : [])
+  return {
+    ...release,
+    history: release.history.filter((item) => {
+      if (!item?.version || seenVersions.has(item.version)) return false
+      seenVersions.add(item.version)
+      return true
+    }),
+  }
+}
+
+function normalizeReleaseHistory(releases) {
+  return {
+    ...releases,
+    android: dedupeReleaseHistory(releases.android),
+    ios: dedupeReleaseHistory(releases.ios),
+  }
+}
+
 async function fetchChangelog({ repo = CHANGELOG_REPO, filePath = CHANGELOG_PATH, branch = CHANGELOG_BRANCH } = {}) {
   const headers = {
     Accept: 'application/vnd.github+json',
@@ -214,7 +236,7 @@ function getReleasesWithPwa() {
     refreshPwaRelease(releases)
   }
 
-  return response
+  return normalizeReleaseHistory(response)
 }
 
 app.get('/api/releases', async (req, res) => {

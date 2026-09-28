@@ -100,6 +100,28 @@ function listChangelogVersions(markdown) {
     .filter(Boolean)
 }
 
+function dedupeReleaseHistory(release) {
+  if (!release || !Array.isArray(release.history)) return release
+
+  const seenVersions = new Set(release.version ? [release.version] : [])
+  return {
+    ...release,
+    history: release.history.filter((item) => {
+      if (!item?.version || seenVersions.has(item.version)) return false
+      seenVersions.add(item.version)
+      return true
+    }),
+  }
+}
+
+function normalizeReleaseHistory(releases) {
+  return {
+    ...releases,
+    android: dedupeReleaseHistory(releases.android),
+    ios: dedupeReleaseHistory(releases.ios),
+  }
+}
+
 async function fetchChangelog({ repo = CHANGELOG_REPO, filePath = CHANGELOG_PATH, branch = CHANGELOG_BRANCH } = {}) {
   const headers = {
     Accept: 'application/vnd.github+json',
@@ -170,7 +192,7 @@ function applyLatestPwaRelease(releases) {
     refreshLatestPwaRelease(releases)
   }
 
-  return response
+  return normalizeReleaseHistory(response)
 }
 
 app.get('/api/changelog', async (req, res) => {
@@ -310,10 +332,11 @@ app.post('/api/releases/publish', requirePublishToken, upload.single('file'), as
   const meta = await extractApkMeta(publishedPath)
   const current = JSON.parse(fs.readFileSync(releasesFile, 'utf8'))
   const previous = current.android
-  const history = Array.isArray(previous?.history) ? previous.history : []
+  let history = dedupeReleaseHistory(previous)?.history ?? []
   if (previous?.version && previous.downloadUrl && previous.downloadUrl !== '#') {
     history.unshift({ version: previous.version, releaseDate: previous.releaseDate, releaseTime: previous.releaseTime, changelog: previous.changelog, downloadUrl: previous.downloadUrl, fileSize: previous.fileSize, minOsVersion: previous.minOsVersion })
   }
+  history = dedupeReleaseHistory({ version, history }).history
   const next = { ...current, android: { ...previous, enabled: true, version, releaseDate, releaseTime, changelog, downloadUrl: `/downloads/${publishedName}`, fileSize: formatBytes(req.file.size), minOsVersion: meta.minOs || previous?.minOsVersion || null, sha256: req.body.sha256 || null, commit: commit || null, history } }
   fs.writeFileSync(releasesFile, JSON.stringify(next, null, 2) + '\n')
   res.json(next.android)
